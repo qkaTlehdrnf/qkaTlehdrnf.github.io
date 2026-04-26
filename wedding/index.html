@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>김원중 ♥ 고홍우 결혼합니다</title>
+  <meta property="og:title" content="김원중 ♥ 고홍우 결혼합니다" />
+  <meta property="og:description" content="2026년 8월 17일 월요일 오전 11시 · 보타닉파크 웨딩홀" />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200;300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Gowun Batang', 'Noto Serif KR', serif;
+      background: #faf8f5;
+      color: #3a3028;
+      overflow-x: hidden;
+    }
+
+    /* ===== OPENING INTRO ===== */
+    #intro {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #1a1410;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.9s ease, visibility 0.9s ease;
+    }
+    #intro.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #petal-canvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .intro-text {
+      text-align: center;
+      color: #f5ede3;
+      z-index: 1;
+      user-select: none;
+    }
+    .intro-deco {
+      font-size: 0.65rem;
+      letter-spacing: 0.6em;
+      color: #7a6a5a;
+      margin-bottom: 1.8rem;
+      opacity: 0;
+      animation: fadeInUp 1s ease 0.3s forwards;
+    }
+    .intro-names {
+      font-size: 2.6rem;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      opacity: 0;
+      animation: fadeInUp 1.2s ease 0.8s forwards;
+    }
+    .intro-heart {
+      font-size: 1rem;
+      color: #c47060;
+      margin: 0 0.6rem;
+      vertical-align: middle;
+    }
+    .intro-line {
+      width: 40px;
+      height: 1px;
+      background: #5a4a3a;
+      margin: 1.4rem auto;
+      opacity: 0;
+      animation: fadeInUp 1s ease 1.5s forwards;
+    }
+    .intro-date {
+      font-size: 0.85rem;
+      letter-spacing: 0.35em;
+      color: #c9b99a;
+      opacity: 0;
+      animation: fadeInUp 1.2s ease 1.6s forwards;
+    }
+    .intro-touch {
+      margin-top: 3.5rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.25em;
+      color: #6a5a4a;
+      opacity: 0;
+      animation: fadeInUp 1s ease 2.4s forwards, blink 2.2s ease 3.4s infinite;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 0.2; }
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    #main-content {
+      opacity: 0;
+      transition: opacity 1s ease 0.2s;
+    }
+    #main-content.visible { opacity: 1; }
+
+    /* ===== HERO ===== */
+    .hero {
+      width: 100%;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 3.5rem;
+      position: relative;
+      overflow: hidden;
+      background: #2a201a;
+    }
+    .hero-bg-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(20,14,10,0.15) 0%, rgba(20,14,10,0.55) 100%);
+      z-index: 1;
+    }
+    .hero-photo-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg, #3a2e26 0%, #2a2018 40%, #1e1610 100%);
+    }
+    /* 메인 사진이 있으면 주석 해제 */
+    /* .hero-main-img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+    } */
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: #f5ede3;
+    }
+    .hero-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.55em;
+      color: #a09080;
+      margin-bottom: 1.2rem;
+    }
+    .hero-names {
+      font-size: 3rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+    }
+    .hero-ampersand {
+      display: block;
+      font-size: 1.2rem;
+      color: #c47060;
+      margin: 0.5rem 0;
+      letter-spacing: 0;
+    }
+    .hero-date {
+      margin-top: 1.4rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.3em;
+      color: #c9b8a0;
+    }
+    .hero-scroll-hint {
+      position: absolute;
+      bottom: 1.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      animation: scrollBounce 2s ease-in-out infinite;
+    }
+    .hero-scroll-hint span {
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      color: #8a7a6a;
+    }
+    .scroll-arrow {
+      width: 1px;
+      height: 30px;
+      background: linear-gradient(to bottom, transparent, #8a7a6a);
+    }
+    @keyframes scrollBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ===== COMMON SECTION ===== */
+    .section { padding: 4.5rem 2rem; text-align: center; }
+    .section-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.55em;
+      color: #b09880;
+      text-transform: uppercase;
+      margin-bottom: 1.8rem;
+    }
+    .divider {
+      width: 1px;
+      height: 45px;
+      background: linear-gradient(to bottom, transparent, #c9b99a, transparent);
+      margin: 0 auto 2.2rem;
+    }
+    .thin-divider {
+      width: 50px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #c9b99a, transparent);
+      margin: 2.5rem auto;
+    }
+
+    /* ===== INVITATION MESSAGE ===== */
+    .invitation { background: #faf8f5; }
+    .invitation-poem {
+      font-size: 0.98rem;
+      line-height: 2.3;
+      color: #5a4a3a;
+      word-break: keep-all;
+    }
+    .invitation-family {
+      margin-top: 2.8rem;
+      font-size: 0.82rem;
+      color: #8a7a6a;
+      line-height: 2.2;
+    }
+    .family-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+      margin-bottom: 0.4rem;
+    }
+    .family-dot {
+      width: 3px;
+      height: 3px;
+      background: #d4c4b0;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ===== D-DAY ===== */
+    .dday-section { background: #f5ede3; }
+    .dday-row {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .dday-box { text-align: center; }
+    .dday-number {
+      font-size: 2.8rem;
+      font-weight: 600;
+      color: #a07050;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .dday-unit {
+      font-size: 0.58rem;
+      letter-spacing: 0.3em;
+      color: #b09880;
+      margin-top: 0.5rem;
+    }
+    .dday-sep {
+      font-size: 2.2rem;
+      color: #d4c4b0;
+      line-height: 1;
+      margin-top: 0.2rem;
+    }
+    .dday-sub {
+      margin-top: 1.8rem;
+      font-size: 0.78rem;
+      color: #b09880;
+      letter-spacing: 0.12em;
+    }
+    .dday-passed {
+      font-size: 1.6rem;
+      color: #a07050;
+      letter-spacing: 0.2em;
+    }
+
+    /* ===== GALLERY ===== */
+    .gallery-section {
+      background: #faf8f5;
+      padding: 4.5rem 0;
+    }
+    .gallery-section .section-label,
+    .gallery-section .divider { display: block; margin-left: auto; margin-right: auto; }
+    .gallery-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 0.6rem;
+      padding: 0 1.8rem;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .gallery-scroll::-webkit-scrollbar { display: none; }
+    .gallery-item {
+      flex: 0 0 68vw;
+      max-width: 260px;
+      aspect-ratio: 3/4;
+      border-radius: 3px;
+      overflow: hidden;
+      background: #e8ddd0;
+    }
+    .gallery-item img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: transform 0.4s ease;
+    }
+    .gallery-item:active img { transform: scale(1.03); }
+    .gallery-empty {
+      padding: 0 2rem;
+      font-size: 0.78rem;
+      color: #c9b99a;
+      letter-spacing: 0.1em;
+      width: 100%;
+    }
+    /* 라이트박스 */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20,14,10,0.95);
+      z-index: 8000;
+      align-items: center;
+      justify-content: center;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img {
+      max-width: 92vw;
+      max-height: 88vh;
+      object-fit: contain;
+      border-radius: 2px;
+    }
+    #lightbox-close {
+      position: absolute;
+      top: 1.2rem; right: 1.4rem;
+      color: #c9b99a;
+      font-size: 1.8rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ===== LOCATION ===== */
+    .location-section { background: #f5ede3; }
+    .venue-name {
+      font-size: 1.5rem;
+      color: #3a3028;
+      margin-bottom: 0.5rem;
+    }
+    .venue-address {
+      font-size: 0.8rem;
+      color: #9a8a78;
+      line-height: 2;
+      margin-bottom: 2rem;
+    }
+    .directions-img {
+      width: 100%;
+      border-radius: 6px;
+      display: block;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .directions-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #e8ddd0;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      color: #b09880;
+      letter-spacing: 0.1em;
+    }
+    .map-buttons {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: center;
+      margin-top: 1.8rem;
+    }
+    .map-btn {
+      padding: 0.65rem 1.5rem;
+      border: 1px solid #c9b99a;
+      border-radius: 30px;
+      font-family: 'Gowun Batang', serif;
+      font-size: 0.78rem;
+      color: #7a6050;
+      background: transparent;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .map-btn:hover, .map-btn:active { background: #c9b99a; color: #faf8f5; }
+
+    /* ===== ACCOUNT ===== */
+    .account-section { background: #faf8f5; }
+    .account-note {
+      font-size: 0.82rem;
+      color: #9a8a78;
+      line-height: 2.1;
+      margin-bottom: 2rem;
+    }
+    .account-card {
+      border: 1px solid #e8ddd0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 0.8rem;
+      text-align: left;
+    }
+    .account-header {
+      padding: 1rem 1.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      background: #fdf9f5;
+      user-select: none;
+    }
+    .account-header-name {
+      font-size: 0.9rem;
+      color: #5a4a3a;
+    }
+    .account-chevron {
+      color: #c9b99a;
+      font-size: 0.8rem;
+      transition: transform 0.3s;
+    }
+    .account-header.open .account-chevron { transform: rotate(180deg); }
+    .account-body {
+      display: none;
+      padding: 1.2rem 1.4rem;
+      background: #fff;
+      border-top: 1px solid #f0e8dc;
+    }
+    .account-body.open { display: block; }
+    .account-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .account-bank { font-size: 0.72rem; color: #b09880; margin-bottom: 0.25rem; }
+    .account-number { font-size: 0.92rem; color: #3a3028; margin-bottom: 0.25rem; }
+    .account-holder { font-size: 0.72rem; color: #9a8a78; }
+    .copy-btn {
+      padding: 0.45rem 1.1rem;
+      background: #f5ede3;
+      border: 1px solid #d4c4b0;
+      border-radius: 20px;
+      font-family: 'Gowun Batang', serif;
+      font-size: 0.72rem;
+      color: #7a6050;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .copy-btn:active { background: #e8ddd0; }
+
+    /* ===== TOAST ===== */
+    #copy-toast {
+      display: none;
+      position: fixed;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(42,30,20,0.88);
+      color: #f5ede3;
+      padding: 0.75rem 1.6rem;
+      border-radius: 30px;
+      font-size: 0.78rem;
+      z-index: 9500;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      padding: 3.5rem 2rem 4rem;
+      text-align: center;
+      background: #1a1410;
+      color: #8a7a6a;
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      line-height: 2.2;
+    }
+    .footer-names {
+      color: #c9b99a;
+      font-size: 1rem;
+      margin-bottom: 0.6rem;
+      letter-spacing: 0.1em;
+    }
+
+    /* ===== CUSTOM MAP ===== */
+    .map-container {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .transport-section {
+      margin-top: 2rem;
+      text-align: left;
+    }
+    .transport-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid #f0e8dc;
+      align-items: flex-start;
+    }
+    .transport-item:last-child { border-bottom: none; }
+    .transport-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.05rem;
+    }
+    .transport-title {
+      font-size: 0.83rem;
+      font-weight: 700;
+      color: #3a3028;
+      margin-bottom: 0.3rem;
+    }
+    .transport-content {
+      font-size: 0.76rem;
+      color: #7a6a5a;
+      line-height: 1.95;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== OPENING INTRO ===== -->
+<div id="intro" onclick="dismissIntro()">
+  <canvas id="petal-canvas"></canvas>
+  <div class="intro-text">
+    <div class="intro-deco">WEDDING INVITATION</div>
+    <div class="intro-names">
+      원중<span class="intro-heart">♥</span>홍우
+    </div>
+    <div class="intro-line"></div>
+    <div class="intro-date">2026 &nbsp;·&nbsp; 08 &nbsp;·&nbsp; 17</div>
+    <div class="intro-touch">화면을 터치해주세요</div>
+  </div>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div id="main-content">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-photo-bg"></div>
+    <!--
+      메인 사진이 생기면 아래 주석을 해제하고
+      src 경로를 pictures/파일명.jpg 로 변경해주세요
+    -->
+    <!-- <img class="hero-main-img" src="./pictures/main.jpg" alt="원중 홍우" /> -->
+    <div class="hero-bg-gradient"></div>
+    <div class="hero-content">
+      <div class="hero-label">WEDDING INVITATION</div>
+      <div class="hero-names">
+        김원중
+        <span class="hero-ampersand">♥</span>
+        고홍우
+      </div>
+      <div class="hero-date">2026 · 08 · 17 &nbsp;MON&nbsp; AM 11:00</div>
+    </div>
+    <div class="hero-scroll-hint">
+      <span>SCROLL</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- INVITATION MESSAGE -->
+  <section class="section invitation">
+    <div class="section-label">Invitation</div>
+    <div class="divider"></div>
+    <p class="invitation-poem">
+      서로가 마주보며 다져온 사랑을<br>
+      이제 함께 걸어갈 큰 사랑으로 키우고자 합니다.<br>
+      <br>
+      저희 두 사람이 사랑과 믿음으로<br>
+      첫걸음을 내딛는 자리에 오셔서<br>
+      축복해 주시면 더없는 기쁨이 되겠습니다.
+    </p>
+    <div class="thin-divider"></div>
+    <div class="invitation-family">
+      <div class="family-line">
+        <span>김성철 · 강성숙</span>
+        <div class="family-dot"></div>
+        <span>의 아들 <strong>원중</strong></span>
+      </div>
+      <div class="family-line" style="margin-top: 0.5rem;">
+        <!--
+          신부측 혼주 이름이 정해지면
+          아래 빈칸을 채워주세요
+        -->
+        <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+        <div class="family-dot"></div>
+        <span>의 딸 <strong>홍우</strong></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- D-DAY COUNTER -->
+  <section class="section dday-section">
+    <div class="section-label">D - Day</div>
+    <div class="divider"></div>
+    <div id="dday-row" class="dday-row"></div>
+    <div class="dday-sub">2026년 8월 17일 월요일 오전 11시</div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="gallery-section">
+    <div class="section-label" style="padding: 0 2rem;">Gallery</div>
+    <div class="divider"></div>
+    <div class="gallery-scroll" id="gallery-scroll"></div>
+  </section>
+
+  <!-- LOCATION -->
+  <section class="section location-section">
+    <div class="section-label">Location</div>
+    <div class="divider"></div>
+    <div class="venue-name">보타닉파크 웨딩홀</div>
+    <div class="venue-address">
+      서울특별시 강서구 마곡중앙5로 6<br>
+      보타닉 푸르지오시티 L층 (로비층)<br>
+      TEL. 02-2662-8300
+    </div>
+    <!-- 커스텀 지도 (별도 파일: map.svg) -->
+    <div class="map-container">
+      <img src="./map.svg" alt="보타닉파크웨딩 오는 길" style="width:100%;display:block;">
+    </div>
+
+    <!-- 교통 안내 -->
+    <div class="transport-section">
+      <div class="transport-item">
+        <div class="transport-icon" style="background:#e8f0f8;">🚇</div>
+        <div>
+          <div class="transport-title">지하철</div>
+          <div class="transport-content">
+            9호선 마곡나루역 1, 2번 출구<br>
+            공항철도 → 9호선 환승 후 마곡나루역 하차
+          </div>
+        </div>
+      </div>
+      <div class="transport-item">
+        <div class="transport-icon" style="background:#f0f8e8;">🚌</div>
+        <div>
+          <div class="transport-title">버스</div>
+          <div class="transport-content">
+            마곡나루역 정류장 하차<br>
+            간선 N64<br>
+            지선 6642 · 6645 · 6648<br>
+            마을 강서05-1 · 강서07
+          </div>
+        </div>
+      </div>
+      <div class="transport-item">
+        <div class="transport-icon" style="background:#f8f4e8;">🚗</div>
+        <div>
+          <div class="transport-title">자가용</div>
+          <div class="transport-content">
+            네비게이션: <strong>"보타닉파크웨딩 주차장"</strong><br>
+            또는 마곡동 760 / 마곡중앙5로 6
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-buttons">
+      <a class="map-btn" href="https://map.kakao.com/link/search/보타닉파크웨딩홀" target="_blank" rel="noopener">카카오맵</a>
+      <a class="map-btn" href="https://map.naver.com/v5/search/보타닉파크웨딩홀" target="_blank" rel="noopener">네이버지도</a>
+    </div>
+  </section>
+
+  <!-- ACCOUNT -->
+  <section class="section account-section">
+    <div class="section-label">마음 전하기</div>
+    <div class="divider"></div>
+    <p class="account-note">
+      참석이 어려우신 분들께서는<br>
+      축하의 마음을 전해주시면 감사하겠습니다.
+    </p>
+
+    <!-- 신랑측 -->
+    <div class="account-card">
+      <div class="account-header" onclick="toggleAccount(this)">
+        <span class="account-header-name">신랑측 계좌번호</span>
+        <span class="account-chevron">▾</span>
+      </div>
+      <div class="account-body">
+        <div class="account-row">
+          <div>
+            <div class="account-bank">우리은행</div>
+            <div class="account-number">1002-244-474182</div>
+            <div class="account-holder">김원중</div>
+          </div>
+          <button class="copy-btn" onclick="copyAccount('1002-244-474182')">복사</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="account-card">
+      <div class="account-header" onclick="toggleAccount(this)">
+        <span class="account-header-name">신부측 계좌번호</span>
+        <span class="account-chevron">▾</span>
+      </div>
+      <div class="account-body">
+        <div class="account-row">
+          <div>
+            <div class="account-bank">우리은행</div>
+            <div class="account-number">1002-062-699558</div>
+            <div class="account-holder">고홍우</div>
+          </div>
+          <button class="copy-btn" onclick="copyAccount('1002-062-699558')">복사</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-names">김원중 &nbsp;·&nbsp; 고홍우</div>
+    2026 · 08 · 17<br>
+    보타닉파크 웨딩홀
+  </footer>
+
+</div><!-- /#main-content -->
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <span id="lightbox-close">✕</span>
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
+<div id="copy-toast">계좌번호가 복사되었습니다</div>
+
+<script>
+  /* ===== PETAL ANIMATION ===== */
+  (function () {
+    const canvas = document.getElementById('petal-canvas');
+    const ctx = canvas.getContext('2d');
+    let petals = [];
+    let animId;
+    const COLORS = ['#c49090', '#e0b8b0', '#d4a8b8', '#c8b0c4', '#e8c8c0', '#d4bcb0'];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+
+    function spawnPetal() {
+      return {
+        x: rand(0, canvas.width),
+        y: rand(-60, -5),
+        rx: rand(5, 11),
+        ry: rand(3, 7),
+        vy: rand(1.0, 2.6),
+        vx: rand(-0.6, 0.6),
+        rot: rand(0, Math.PI * 2),
+        rotV: rand(-0.025, 0.025),
+        wobble: rand(0, Math.PI * 2),
+        wobbleS: rand(0.02, 0.04),
+        alpha: rand(0.45, 0.85),
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      };
+    }
+
+    function drawPetal(p) {
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (petals.length < 45) petals.push(spawnPetal());
+      petals = petals.filter(p => p.y < canvas.height + 20);
+      for (const p of petals) {
+        p.wobble += p.wobbleS;
+        p.x += p.vx + Math.sin(p.wobble) * 0.55;
+        p.y += p.vy;
+        p.rot += p.rotV;
+        drawPetal(p);
+      }
+      animId = requestAnimationFrame(loop);
+    }
+    loop();
+
+    window._stopPetals = () => cancelAnimationFrame(animId);
+  })();
+
+  /* ===== INTRO DISMISS ===== */
+  function dismissIntro() {
+    window._stopPetals && window._stopPetals();
+    document.getElementById('intro').classList.add('hidden');
+    document.getElementById('main-content').classList.add('visible');
+  }
+
+  /* ===== D-DAY COUNTER ===== */
+  const WEDDING = new Date('2026-08-17T11:00:00');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateDday() {
+    const now = new Date();
+    const diff = WEDDING - now;
+    const el = document.getElementById('dday-row');
+    if (!el) return;
+
+    if (diff <= 0) {
+      el.innerHTML = '<div class="dday-passed">D - DAY</div>';
+      return;
+    }
+
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+
+    el.innerHTML = `
+      <div class="dday-box">
+        <div class="dday-number">${pad(d)}</div>
+        <div class="dday-unit">DAYS</div>
+      </div>
+      <div class="dday-sep">:</div>
+      <div class="dday-box">
+        <div class="dday-number">${pad(h)}</div>
+        <div class="dday-unit">HOURS</div>
+      </div>
+      <div class="dday-sep">:</div>
+      <div class="dday-box">
+        <div class="dday-number">${pad(m)}</div>
+        <div class="dday-unit">MINS</div>
+      </div>
+      <div class="dday-sep">:</div>
+      <div class="dday-box">
+        <div class="dday-number">${pad(s)}</div>
+        <div class="dday-unit">SECS</div>
+      </div>
+    `;
+  }
+
+  updateDday();
+  setInterval(updateDday, 1000);
+
+  /* ===== GALLERY =====
+   * pictures 폴더에 추가한 파일명을 아래 배열에 넣어주세요.
+   * 예: ['01.jpg', '02.jpg', '03.jpg']
+   */
+  const PHOTOS = [
+    // '01.jpg',
+    // '02.jpg',
+    // '03.jpg',
+  ];
+
+  (function renderGallery() {
+    const wrap = document.getElementById('gallery-scroll');
+    if (PHOTOS.length === 0) {
+      wrap.innerHTML = '<p class="gallery-empty">pictures 폴더에 사진을 추가한 후 위 PHOTOS 배열에 파일명을 입력해주세요.</p>';
+      return;
+    }
+    PHOTOS.forEach((name, i) => {
+      const div = document.createElement('div');
+      div.className = 'gallery-item';
+      div.onclick = () => openLightbox(`./pictures/${name}`);
+      const img = document.createElement('img');
+      img.src = `./pictures/${name}`;
+      img.alt = `웨딩 사진 ${i + 1}`;
+      img.loading = 'lazy';
+      div.appendChild(img);
+      wrap.appendChild(div);
+    });
+  })();
+
+  /* ===== LIGHTBOX ===== */
+  function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* ===== ACCOUNT TOGGLE ===== */
+  function toggleAccount(header) {
+    header.classList.toggle('open');
+    const body = header.nextElementSibling;
+    body.classList.toggle('open');
+  }
+
+  /* ===== COPY ACCOUNT ===== */
+  function copyAccount(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      const t = document.getElementById('copy-toast');
+      t.style.display = 'block';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.display = 'none'; }, 2200);
+    }).catch(() => {
+      /* fallback for older browsers */
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const t = document.getElementById('copy-toast');
+      t.style.display = 'block';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.display = 'none'; }, 2200);
+    });
+  }
+
+  /* ===== SCROLL FADE-IN (간단한 등장 효과) ===== */
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.section, .gallery-section').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(24px)';
+    el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
