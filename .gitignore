@@ -1,0 +1,4 @@
+.env
+.venv/
+photo-pipeline/models/
+votes-worker/node_modules/
