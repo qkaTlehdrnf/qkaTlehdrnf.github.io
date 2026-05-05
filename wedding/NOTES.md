@@ -256,6 +256,87 @@ lb.addEventListener('touchend', e => {
 
 ---
 
+### TRAP-10: 프롬프트 기반 편집(Qwen 등)에서 변형 범위를 제한하지 않음 → 원본과 전혀 다른 사진
+
+**언제 발생하나**  
+Qwen-Image-Edit, InstructPix2Pix 등 diffusion 기반 이미지 편집 모델에 편집 목표만 써서 프롬프트를 구성할 때.
+
+**증상**  
+모델이 요청한 부분만 수정하지 않고 피부를 매끄럽게 바꾸고, 머리카락 가닥을 뭉치게 합치고, 옷 주름·디테일을 단순화하고, 색감과 화이트밸런스를 임의로 조정한다. 결과물이 원본과 분위기가 달라져 결혼사진답지 않아진다.
+
+**원인**  
+diffusion 모델은 "편집 지시 + 이미지 가이던스"를 동시에 받는다. 편집 지시만 주고 보존 지시를 생략하면 모델이 자기 판단으로 "더 좋아 보이게" 전체를 손댄다. 기본 성향이 이미지를 재생성하는 방향이기 때문이다.
+
+**잘못된 접근**  
+```
+prompt = "make the skin look smoother and improve lighting"
+```
+요청 범위를 명시하지 않으면 모델이 편집 범위를 스스로 정한다.
+
+**올바른 접근 — 보존 목록을 프롬프트에 명시적으로 포함**  
+편집 지시는 가능한 한 하나만(`one change only`). 나머지는 전부 "건드리지 말 것"으로 열거한다.
+
+보존 목록에서 **반드시 포함해야 할 두 가지**:
+1. **옷(의상)**: 드레스 스타일, 네크라인, 원단 질감, 주름, 장신구 — 이 중 하나라도 빠지면 모델이 임의로 단순화한다.
+2. **머리카락**: 개별 가닥, 잔머리, 윤기 — 명시하지 않으면 뭉개거나 다시 그린다.
+
+```python
+_PRESERVE = (
+    "Do NOT touch or alter the following — they must be pixel-perfect identical to the original: "
+    "every individual hair strand and flyaway (do not merge, clump, or redraw hair), "
+    "all eye details including iris color, pupil, and gaze direction, "
+    "all facial features and facial expression, "
+    "all skin tone, skin color, and skin texture (do not smooth, brighten, or recolor skin), "
+    "body pose and posture, "
+    "all background elements, textures, and fine details, "
+    "color grading, white balance, lighting mood, and color temperature. "
+)
+```
+
+negative prompt에도 대응 항목을 넣는다:
+```python
+NEGATIVE = (
+    "clumped hair, merged hair, redrawn hair, simplified hair, "
+    "changed dress style, changed neckline, changed clothing fabric, "
+    "plastic skin, smoothed skin, brightened skin, airbrushed skin, "
+    "changed white balance, altered color grading, color shift, "
+    "changed face identity, changed expression, altered eye color"
+)
+```
+
+**설정값 기준 (Qwen-Image-Edit-2511, 2026-05 기준)**  
+- `true_cfg_scale`: 2.5(자연스러운 편집) ~ 3.0(실루엣 보정 등 강한 편집). 3.5 이상이면 변형이 눈에 띈다.  
+- GFPGAN `weight`: 0.5가 기준. 1.0은 얼굴이 인형처럼 보인다. 0.3 아래면 효과가 없다.  
+- 결과물은 반드시 `--sample 5`로 5장 먼저 확인 후 전체 처리.
+
+---
+
+### TRAP-11: 오픈소스 초해상도(upscaling)로 고화질 변환 시도 → 어색한 결과
+
+**현황 (2026년 5월 기준)**  
+RealESRGAN, ESRGAN, CodeFormer 등 오픈소스 upscaling 모델로 결혼사진을 고해상도로 변환하면 **특히 얼굴과 배경 경계에서 AI 특유의 부자연스러움이 생긴다**. 피부가 플라스틱처럼 보이거나, 배경 보케가 규칙적인 패턴으로 바뀌거나, 머리카락 경계가 너무 선명해진다.
+
+**증상**  
+- 얼굴: 모공·주름이 사라지고 과도하게 매끈해짐 (wax/plastic 느낌)
+- 배경: 아웃포커스 영역이 반복적인 텍스처로 재생성됨
+- 머리카락: 개별 가닥이 뭉쳐 덩어리로 처리됨
+- 색감: 채도가 임의로 올라가거나 색온도가 바뀜
+
+**잘못된 접근**  
+원본 사진에 upscaler를 직접 적용해 "고화질 버전"을 만들고 이걸 결혼사진 최종본으로 쓴다.
+
+**올바른 접근 (2026-05 기준)**  
+고화질 변환은 아직 **로컬 편집(local edit)** 방향이 맞다. 구체적으로:
+
+- **원본 파일을 그대로 보존**하고 upscaling은 별도 비교용으로만 생성한다.
+- 업스케일이 필요한 경우 모델 적용 후 원본과 50% 블렌딩해서 AI 느낌을 줄인다.
+- 얼굴 복원은 GFPGAN `weight=0.5` 수준으로 제한한다(얼굴 영역에만 영향, 배경·옷 비손상).
+- 전체 화질 향상보다는 **특정 결함(노이즈, 흔들림) 부분 보정** 쪽이 현실적이다.
+
+이 상황은 모델 발전 속도가 빠르므로 2026년 하반기 이후엔 재평가 필요.
+
+---
+
 ## 현재 기능 목록 (상태: 2026-05-05)
 
 | 섹션 | 핵심 구현 |
