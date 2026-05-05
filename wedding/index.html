@@ -342,10 +342,7 @@
       align-items: center;
       gap: 0.22rem;
       pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s;
     }
-    .gallery-heart-count.visible { opacity: 1; }
     .gallery-votes {
       display: flex;
       align-items: center;
@@ -1146,10 +1143,7 @@
       countBadge.className = 'gallery-heart-count';
       countBadge.id = `ghc-${CSS.escape(name)}`;
       const count = heartCounts[name] || 0;
-      if (count > 0) {
-        countBadge.textContent = `♥ ${count}`;
-        countBadge.classList.add('visible');
-      }
+      countBadge.textContent = count > 0 ? `♥ ${count}` : '♡';
       imgWrap.appendChild(countBadge);
 
       div.appendChild(imgWrap);
@@ -1173,8 +1167,7 @@
     const badge = document.getElementById(`ghc-${CSS.escape(name)}`);
     if (badge) {
       const count = heartCounts[name] || 0;
-      badge.textContent = count > 0 ? `♥ ${count}` : '';
-      badge.classList.toggle('visible', count > 0);
+      badge.textContent = count > 0 ? `♥ ${count}` : '♡';
     }
   }
 
