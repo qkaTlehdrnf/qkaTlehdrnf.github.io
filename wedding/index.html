@@ -1026,6 +1026,34 @@
     localStorage.setItem('weddingHearts', JSON.stringify([...myHearts]));
   }
 
+  /* ===== FULL-RES PREFETCH ===== */
+  const prefetched = new Set();
+  let prefetchQueue = [];
+  let prefetchActive = false;
+
+  function doPrefetch() {
+    if (prefetchActive || prefetchQueue.length === 0) return;
+    prefetchActive = true;
+    const name = prefetchQueue.shift();
+    if (prefetched.has(name)) { prefetchActive = false; doPrefetch(); return; }
+    const hi = new Image();
+    hi.onload = hi.onerror = () => { prefetched.add(name); prefetchActive = false; doPrefetch(); };
+    hi.src = `./pictures/${name}`;
+  }
+
+  function enqueuePrefetch(name) {
+    if (prefetched.has(name) || prefetchQueue.includes(name)) return;
+    prefetchQueue.push(name);
+    doPrefetch();
+  }
+
+  function prioritizePrefetch(name) {
+    if (prefetched.has(name)) return;
+    prefetchQueue = prefetchQueue.filter(n => n !== name);
+    prefetchQueue.unshift(name);
+    doPrefetch();
+  }
+
   let galleryObserver = null;
 
   function renderGallery() {
@@ -1062,7 +1090,9 @@
 
       const imgWrap = document.createElement('div');
       imgWrap.className = 'gallery-img-wrap';
-      imgWrap.onclick = () => openLightbox(`./pictures/${name}`);
+      imgWrap.onclick = () => openLightbox(name);
+      div.addEventListener('mouseenter', () => prioritizePrefetch(name));
+      div.addEventListener('touchstart', () => prioritizePrefetch(name), { passive: true });
 
       const img = document.createElement('img');
       if (i < 3) {
@@ -1130,6 +1160,8 @@
   }
 
   renderGallery();
+  PHOTOS.forEach(name => enqueuePrefetch(name));
+
   fetch(`${VOTES_API}/votes`)
     .then(r => r.json())
     .then(data => {
@@ -1139,10 +1171,21 @@
     .catch(() => {});
 
   /* ===== LIGHTBOX ===== */
-  function openLightbox(src) {
-    document.getElementById('lightbox-img').src = src;
-    document.getElementById('lightbox').classList.add('open');
+  function openLightbox(name) {
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = `./pictures/thumbs/${name}`;
+    lb.classList.add('open');
     document.body.style.overflow = 'hidden';
+
+    if (prefetched.has(name)) {
+      lbImg.src = `./pictures/${name}`;
+    } else {
+      prioritizePrefetch(name);
+      const hi = new Image();
+      hi.onload = () => { if (lb.classList.contains('open')) lbImg.src = `./pictures/${name}`; };
+      hi.src = `./pictures/${name}`;
+    }
   }
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('open');
