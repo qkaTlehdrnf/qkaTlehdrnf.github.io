@@ -134,11 +134,17 @@
       inset: 0;
       background: linear-gradient(145deg, #3a2e26 0%, #2a2018 40%, #1e1610 100%);
     }
-    /* 메인 사진이 있으면 주석 해제 */
-    /* .hero-main-img {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%; object-fit: cover;
-    } */
+    #hero-best-img {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      opacity: 0;
+      transition: opacity 2.5s ease;
+      z-index: 0;
+    }
+    #hero-best-img.loaded { opacity: 1; }
     .hero-content {
       position: relative;
       z-index: 2;
@@ -657,11 +663,7 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-photo-bg"></div>
-    <!--
-      메인 사진이 생기면 아래 주석을 해제하고
-      src 경로를 pictures/파일명.jpg 로 변경해주세요
-    -->
-    <!-- <img class="hero-main-img" src="./pictures/main.jpg" alt="원중 홍우" /> -->
+    <img id="hero-best-img" alt="웨딩 사진" />
     <div class="hero-bg-gradient"></div>
     <div class="hero-content">
       <div class="hero-label">WEDDING INVITATION</div>
@@ -1203,6 +1205,18 @@
 
   renderGallery();
   PHOTOS.forEach(name => enqueuePrefetch(name));
+
+  function setHeroPhoto() {
+    const hero = document.getElementById('hero-best-img');
+    const img = new Image();
+    img.onload = () => {
+      hero.src = img.src;
+      requestAnimationFrame(() => hero.classList.add('loaded'));
+    };
+    img.src = `./pictures/${SHUFFLED[0]}`;
+  }
+
+  setHeroPhoto();
 
   fetch(`${VOTES_API}/votes`)
     .then(r => r.json())
