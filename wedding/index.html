@@ -308,17 +308,69 @@
     .gallery-item {
       flex: 0 0 68vw;
       max-width: 260px;
-      aspect-ratio: 3/4;
       border-radius: 3px;
       overflow: hidden;
       background: #e8ddd0;
+      display: flex;
+      flex-direction: column;
+    }
+    .gallery-img-wrap {
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      cursor: pointer;
     }
     .gallery-item img {
       width: 100%; height: 100%;
       object-fit: cover; display: block;
       transition: transform 0.4s ease;
     }
-    .gallery-item:active img { transform: scale(1.03); }
+    .gallery-img-wrap:active img { transform: scale(1.03); }
+    .gallery-votes {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.3rem 0;
+      background: #faf8f5;
+    }
+    .heart-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.15rem 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      color: #ccc;
+      transition: transform 0.15s, color 0.15s;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+    .heart-btn:hover { transform: scale(1.15); }
+    .heart-btn.hearted { color: #e07070; }
+    .heart-btn.hearted .heart-icon { animation: heartpop 0.25s ease; }
+    @keyframes heartpop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+    .gallery-sort-bar {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0.6rem 1.8rem 0.4rem;
+    }
+    .sort-toggle {
+      background: none;
+      border: 1px solid #d4c4b0;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      color: #a89880;
+      padding: 0.22rem 0.8rem;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sort-toggle:hover, .sort-toggle.active { background: #c9a96e; color: #fff; border-color: #c9a96e; }
     .gallery-empty {
       padding: 0 2rem;
       font-size: 0.78rem;
@@ -630,6 +682,9 @@
   <section class="gallery-section">
     <div class="section-label" style="padding: 0 2rem;">Gallery</div>
     <div class="divider"></div>
+    <div class="gallery-sort-bar">
+      <button class="sort-toggle" id="sort-toggle" onclick="toggleSort()">추천순 정렬</button>
+    </div>
     <div class="gallery-scroll" id="gallery-scroll"></div>
   </section>
 
@@ -876,29 +931,189 @@
    * 예: ['01.jpg', '02.jpg', '03.jpg']
    */
   const PHOTOS = [
-    // '01.jpg',
-    // '02.jpg',
-    // '03.jpg',
+    '01_SIN00008-1.jpg',
+    '02_SIN00045-1.jpg',
+    '03_SIN00122-1.jpg',
+    '04_SIN00146-1.jpg',
+    '05_SIN00193-1.jpg',
+    '06_SIN00174-1.jpg',
+    '07_SIN00287-1.jpg',
+    '08_SIN00237-1.jpg',
+    '09_SIN00304-1.jpg',
+    '10_SIN00384-1.jpg',
+    '11_SIN00391-1.jpg',
+    '12_SIN00411-1.jpg',
+    '13_SIN00331-1.jpg',
+    '14_SIN00340-1.jpg',
+    '15_SIN00452-1.jpg',
+    '16_SIN00465-1.jpg',
+    '17_SIN00513-1.jpg',
+    '18_SIN00544-1.jpg',
+    '19_SIN00562-1.jpg',
+    '20_SIN00577-1.jpg',
+    '21_SIN00589-1.jpg',
+    '22_SIN00585-1.jpg',
+    '23_SIN00615-1.jpg',
+    '24_SIN00650-1.jpg',
+    '25_SIN00609-1.jpg',
+    '26_SIN00607-1.jpg',
+    '27_SIN00673-1.jpg',
+    '28_SIN00697-1.jpg',
+    '29_SIN00711-1.jpg',
+    '30_SIN00547-1.jpg',
+    '31_SIN00721-1.jpg',
+    '32_SIN00740-1.jpg',
+    '33_SIN00778-1.jpg',
+    '34_SIN00766-1.jpg',
+    '35_SIN00794-1.jpg',
+    '36_SIN00823-1.jpg',
+    '37_SIN00843-1.jpg',
+    '38_SIN00859-1.jpg',
+    '39_SIN00875-1.jpg',
+    '40_SIN00866-1.jpg',
+    '41_SIN00879-1.jpg',
+    '42_SIN00909-1.jpg',
+    '43_SIN00946-1.jpg',
+    '44_SIN00952-1.jpg',
+    '45_SIN00964-1.jpg',
+    '46_SIN00994-1.jpg',
+    '47_SIN01040-1.jpg',
+    '48_SIN01055-1.jpg',
+    '49_SIN01408-1.jpg',
+    '50_SIN01395-1.jpg',
+    '51_SIN01156_색감그대로-1.jpg',
+    '52_SIN01198_색감그대로-1.jpg',
+    '53_SIN01096_색감그대로-1.jpg',
+    '54_SIN01130_색감그대로-1.jpg',
+    '55_SIN01257_색감그대로-1.jpg',
+    '56_SIN01256_색감그대로-1.jpg',
+    '57_SIN01214_색감그대로-1.jpg',
+    '58_SIN01238_색감그대로-1.jpg',
+    '59_SIN01301-1.jpg',
+    '60_SIN01319-1.jpg',
+    '61_SIN01362-1.jpg',
+    '62_SIN01454-1.jpg',
+    '63_SIN01495-1.jpg',
+    '64_SIN01507-1.jpg',
+    '65_SIN01557-1.jpg',
+    '66_SIN01583-1.jpg',
+    '67_SIN01941-1.jpg',
+    '68_SIN01947-1.jpg',
+    '69_SIN01850-1.jpg',
+    '70_SIN01883-1.jpg',
+    '71_SIN01634-1.jpg',
+    '72_SIN01670-1.jpg',
+    '73_SIN01763-1.jpg',
+    '74_SIN01825-1.jpg',
+    '75_SIN01990-1.jpg',
+    '76_SIN01978-1.jpg',
+    '77_SIN02154-1.jpg',
+    '78_SIN02140-1.jpg',
+    '79_SIN02038-1.jpg',
+    '80_SIN02051-1.jpg',
+    '81_SIN02088-1.jpg',
   ];
 
-  (function renderGallery() {
+  const VOTES_API = 'http://182.220.193.78:8765';
+  let heartCounts = {};  // {filename: N}
+  let myHearts = new Set(JSON.parse(localStorage.getItem('weddingHearts') || '[]'));
+  let sortByHearts = false;
+
+  function saveMyHearts() {
+    localStorage.setItem('weddingHearts', JSON.stringify([...myHearts]));
+  }
+
+  function renderGallery() {
     const wrap = document.getElementById('gallery-scroll');
     if (PHOTOS.length === 0) {
       wrap.innerHTML = '<p class="gallery-empty">pictures 폴더에 사진을 추가한 후 위 PHOTOS 배열에 파일명을 입력해주세요.</p>';
       return;
     }
-    PHOTOS.forEach((name, i) => {
+    const order = sortByHearts
+      ? [...PHOTOS].sort((a, b) => (heartCounts[b] || 0) - (heartCounts[a] || 0))
+      : PHOTOS;
+
+    wrap.innerHTML = '';
+    order.forEach((name, i) => {
+      const count = heartCounts[name] || 0;
+      const hearted = myHearts.has(name);
+
       const div = document.createElement('div');
       div.className = 'gallery-item';
-      div.onclick = () => openLightbox(`./pictures/${name}`);
+      div.id = `gi-${CSS.escape(name)}`;
+
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'gallery-img-wrap';
+      imgWrap.onclick = () => openLightbox(`./pictures/${name}`);
+
       const img = document.createElement('img');
       img.src = `./pictures/${name}`;
       img.alt = `웨딩 사진 ${i + 1}`;
       img.loading = 'lazy';
-      div.appendChild(img);
+      imgWrap.appendChild(img);
+
+      const voteBar = document.createElement('div');
+      voteBar.className = 'gallery-votes';
+
+      const btn = document.createElement('button');
+      btn.className = 'heart-btn' + (hearted ? ' hearted' : '');
+      btn.innerHTML = `<span class="heart-icon">${hearted ? '♥' : '♡'}</span><span>${count || ''}</span>`;
+      btn.onclick = (e) => { e.stopPropagation(); castHeart(name); };
+
+      voteBar.appendChild(btn);
+      div.appendChild(imgWrap);
+      div.appendChild(voteBar);
       wrap.appendChild(div);
     });
-  })();
+  }
+
+  function updateHeartUI(name) {
+    const item = document.getElementById(`gi-${CSS.escape(name)}`);
+    if (!item) return;
+    const count = heartCounts[name] || 0;
+    const hearted = myHearts.has(name);
+    const btn = item.querySelector('.heart-btn');
+    btn.className = 'heart-btn' + (hearted ? ' hearted' : '');
+    btn.innerHTML = `<span class="heart-icon">${hearted ? '♥' : '♡'}</span><span>${count || ''}</span>`;
+  }
+
+  async function castHeart(name) {
+    if (myHearts.has(name)) return; // 이미 하트 누름
+    myHearts.add(name);
+    saveMyHearts();
+
+    if (!heartCounts[name]) heartCounts[name] = 0;
+    heartCounts[name]++;
+    updateHeartUI(name);
+
+    try {
+      const res = await fetch(`${VOTES_API}/vote`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({photo: name, action: 'up'}),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        heartCounts[name] = data.up;
+        updateHeartUI(name);
+      }
+    } catch (_) {}
+  }
+
+  function toggleSort() {
+    sortByHearts = !sortByHearts;
+    document.getElementById('sort-toggle').classList.toggle('active', sortByHearts);
+    renderGallery();
+  }
+
+  renderGallery();
+  fetch(`${VOTES_API}/votes`)
+    .then(r => r.json())
+    .then(data => {
+      Object.entries(data).forEach(([k, v]) => { heartCounts[k] = v.up; });
+      renderGallery();
+    })
+    .catch(() => {});
 
   /* ===== LIGHTBOX ===== */
   function openLightbox(src) {
