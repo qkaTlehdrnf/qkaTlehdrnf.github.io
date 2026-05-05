@@ -256,7 +256,70 @@ lb.addEventListener('touchend', e => {
 
 ---
 
-### TRAP-10: 프롬프트 기반 편집(Qwen 등)에서 변형 범위를 제한하지 않음 → 원본과 전혀 다른 사진
+### TRAP-10: 투표가 안 되는 것처럼 보이지만 실제로는 세 가지 다른 원인
+
+**증상**  
+사용자가 하트를 눌렀는데 새로고침하면 카운트가 0으로 돌아온다. 또는 하트가 이미 눌린 것처럼 표시되는데 투표한 기억이 없다.
+
+**이 증상에는 원인이 세 가지 있으며, 겉으로 보이는 현상이 동일하기 때문에 반드시 순서대로 진단해야 한다.**
+
+---
+
+**원인 A: HTTP 백엔드 + HTTPS 페이지 → mixed content 블록 (가장 위험)**
+
+GitHub Pages는 HTTPS다. 백엔드가 HTTP면 브라우저가 fetch 자체를 차단한다.  
+`catch(() => {})` 가 에러를 삼키기 때문에 콘솔에도 아무것도 안 뜨고, 낙관적 UI 때문에 사용자는 투표가 된 것처럼 느낀다. 새로고침하면 카운트가 0 → 사용자는 "버그"라고 느끼지만 원인을 특정할 수 없다.
+
+이 프로젝트에서 Cloudflare 이전 전 Python HTTP 서버 시절에 발생한 문제. 투표가 한 번도 저장된 적 없었지만 UI는 저장된 것처럼 보였다.
+
+---
+
+**원인 B: 백엔드 교체 후 데이터 마이그레이션 누락**  
+→ TRAP-3 참고 (이미 기술됨)
+
+---
+
+**원인 C: 진단 과정에서 만든 테스트 데이터가 사용자 IP와 충돌**
+
+`curl`로 테스트 투표를 넣을 때 Worker는 `CF-Connecting-IP`(서버의 공인 IP)를 해당 투표의 소유 IP로 저장한다.  
+사용자가 같은 기기(또는 같은 공인 IP)에서 브라우저로 접속하면 Cloudflare는 같은 IP로 인식 → GET /votes 응답에 `my_votes`에 테스트 사진이 포함됨 → 프론트엔드가 그 사진을 "이미 투표함"으로 표시 → 사용자가 투표하려 해도 막힘.
+
+**핵심**: curl 테스트와 브라우저 접속이 같은 공인 IP를 쓴다면, 테스트 투표가 실제 사용자 경험을 오염시킨다.
+
+---
+
+**올바른 진단 순서**
+
+브라우저 DevTools의 **Network 탭**을 열고 직접 확인한다. `curl`은 브라우저 보안 정책(CORS, mixed content)을 우회하므로 curl이 동작해도 브라우저에서 실패할 수 있다.
+
+```
+1. Network 탭에서 /votes 요청 확인
+   → 요청 자체가 없다: JS 오류 (Console 탭 확인)
+   → 요청이 있는데 실패(CORS/mixed content): 백엔드 URL 또는 프로토콜 문제 (원인 A)
+   → 요청이 성공하고 my_votes에 이미 있다: 테스트 데이터 오염 (원인 C)
+   → 요청이 성공하고 votes가 비어있다: 마이그레이션 누락 (원인 B)
+
+2. Network 탭에서 /vote POST 요청 확인 (하트 클릭 후)
+   → 요청 자체가 없다: castHeart()가 호출 안 됨 (myVotedPhotos.has() 조기 반환 의심)
+   → 요청이 실패: mixed content 또는 CORS
+   → 요청이 성공(200)인데 새로고침 후 카운트 없음: KV 최종 일관성 지연 (~60초)
+```
+
+**테스트 후 반드시 KV 정리**
+
+```bash
+cd votes-worker
+npx wrangler kv key list --binding VOTES     # 테스트로 생긴 ip: 키 확인
+npx wrangler kv key delete --binding VOTES "votes"
+npx wrangler kv key delete --binding VOTES "ip:테스트에_사용한_IP"
+```
+
+**silent catch의 위험성**  
+`catch(() => {})` 패턴은 API 오류를 완전히 숨긴다. 낙관적 UI와 함께 쓰면 서버에 저장이 안 됐어도 사용자는 된 것처럼 느낀다. 디버깅 시에는 반드시 Network 탭을 봐야 한다. 프로덕션 코드에서도 최소한 `console.warn`이라도 남기는 것이 낫다.
+
+---
+
+### TRAP-11: 프롬프트 기반 편집(Qwen 등)에서 변형 범위를 제한하지 않음 → 원본과 전혀 다른 사진
 
 **언제 발생하나**  
 Qwen-Image-Edit, InstructPix2Pix 등 diffusion 기반 이미지 편집 모델에 편집 목표만 써서 프롬프트를 구성할 때.
@@ -311,7 +374,7 @@ NEGATIVE = (
 
 ---
 
-### TRAP-11: 오픈소스 초해상도(upscaling)로 고화질 변환 시도 → 어색한 결과
+### TRAP-12: 오픈소스 초해상도(upscaling)로 고화질 변환 시도 → 어색한 결과
 
 **현황 (2026년 5월 기준)**  
 RealESRGAN, ESRGAN, CodeFormer 등 오픈소스 upscaling 모델로 결혼사진을 고해상도로 변환하면 **특히 얼굴과 배경 경계에서 AI 특유의 부자연스러움이 생긴다**. 피부가 플라스틱처럼 보이거나, 배경 보케가 규칙적인 패턴으로 바뀌거나, 머리카락 경계가 너무 선명해진다.
