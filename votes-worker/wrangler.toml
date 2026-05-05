@@ -1,0 +1,8 @@
+name = "wedding-votes"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "VOTES"
+id = "adf1945952914d07a70452426663dcf3"
