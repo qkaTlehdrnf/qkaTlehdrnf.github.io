@@ -406,6 +406,27 @@
       cursor: pointer;
       line-height: 1;
     }
+    #lightbox-heart-btn {
+      position: absolute;
+      bottom: 1.4rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30,20,15,0.6);
+      border: 1px solid rgba(201,185,154,0.4);
+      border-radius: 24px;
+      color: #c9b99a;
+      font-size: 1.1rem;
+      padding: 0.45rem 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: transform 0.15s, color 0.15s;
+      letter-spacing: 0.04em;
+    }
+    #lightbox-heart-btn:hover { transform: translateX(-50%) scale(1.1); }
+    #lightbox-heart-btn.hearted { color: #e07070; border-color: rgba(224,112,112,0.5); }
+    #lightbox-heart-btn.hearted #lightbox-heart-icon { animation: heartpop 0.25s ease; }
 
     /* ===== LOCATION ===== */
     .location-section { background: #f5ede3; }
@@ -806,6 +827,10 @@
 <div id="lightbox" onclick="closeLightbox()">
   <span id="lightbox-close">✕</span>
   <img id="lightbox-img" src="" alt="" />
+  <button id="lightbox-heart-btn" onclick="event.stopPropagation(); castHeart()">
+    <span id="lightbox-heart-icon">♡</span>
+    <span id="lightbox-heart-count"></span>
+  </button>
 </div>
 
 <div id="copy-toast">계좌번호가 복사되었습니다</div>
@@ -1019,12 +1044,9 @@
 
   const VOTES_API = 'http://182.220.193.78:8765';
   let heartCounts = {};  // {filename: N}
-  let myHearts = new Set(JSON.parse(localStorage.getItem('weddingHearts') || '[]'));
+  let myVotedPhotos = new Set();  // IP-based, populated from server
+  let currentLightboxName = null;
   let sortByHearts = false;
-
-  function saveMyHearts() {
-    localStorage.setItem('weddingHearts', JSON.stringify([...myHearts]));
-  }
 
   /* ===== FULL-RES PREFETCH ===== */
   const prefetched = new Set();
@@ -1081,9 +1103,6 @@
 
     wrap.innerHTML = '';
     order.forEach((name, i) => {
-      const count = heartCounts[name] || 0;
-      const hearted = myHearts.has(name);
-
       const div = document.createElement('div');
       div.className = 'gallery-item';
       div.id = `gi-${CSS.escape(name)}`;
@@ -1103,41 +1122,33 @@
       img.alt = `웨딩 사진 ${i + 1}`;
       imgWrap.appendChild(img);
 
-      const voteBar = document.createElement('div');
-      voteBar.className = 'gallery-votes';
-
-      const btn = document.createElement('button');
-      btn.className = 'heart-btn' + (hearted ? ' hearted' : '');
-      btn.innerHTML = `<span class="heart-icon">${hearted ? '♥' : '♡'}</span><span>${count || ''}</span>`;
-      btn.onclick = (e) => { e.stopPropagation(); castHeart(name); };
-
-      voteBar.appendChild(btn);
       div.appendChild(imgWrap);
-      div.appendChild(voteBar);
       wrap.appendChild(div);
 
       if (i >= 3) galleryObserver.observe(div);
     });
   }
 
-  function updateHeartUI(name) {
-    const item = document.getElementById(`gi-${CSS.escape(name)}`);
-    if (!item) return;
-    const count = heartCounts[name] || 0;
-    const hearted = myHearts.has(name);
-    const btn = item.querySelector('.heart-btn');
-    btn.className = 'heart-btn' + (hearted ? ' hearted' : '');
-    btn.innerHTML = `<span class="heart-icon">${hearted ? '♥' : '♡'}</span><span>${count || ''}</span>`;
+  function updateLightboxHeartUI() {
+    const name = currentLightboxName;
+    if (!name) return;
+    const btn = document.getElementById('lightbox-heart-btn');
+    const icon = document.getElementById('lightbox-heart-icon');
+    const countEl = document.getElementById('lightbox-heart-count');
+    const hearted = myVotedPhotos.has(name);
+    btn.className = hearted ? 'hearted' : '';
+    icon.textContent = hearted ? '♥' : '♡';
+    countEl.textContent = heartCounts[name] || '';
   }
 
-  async function castHeart(name) {
-    if (myHearts.has(name)) return; // 이미 하트 누름
-    myHearts.add(name);
-    saveMyHearts();
+  async function castHeart() {
+    const name = currentLightboxName;
+    if (!name || myVotedPhotos.has(name)) return;
 
+    myVotedPhotos.add(name);
     if (!heartCounts[name]) heartCounts[name] = 0;
     heartCounts[name]++;
-    updateHeartUI(name);
+    updateLightboxHeartUI();
 
     try {
       const res = await fetch(`${VOTES_API}/vote`, {
@@ -1148,7 +1159,8 @@
       if (res.ok) {
         const data = await res.json();
         heartCounts[name] = data.up;
-        updateHeartUI(name);
+        if (data.already_voted) myVotedPhotos.add(name);
+        updateLightboxHeartUI();
       }
     } catch (_) {}
   }
@@ -1165,18 +1177,23 @@
   fetch(`${VOTES_API}/votes`)
     .then(r => r.json())
     .then(data => {
-      Object.entries(data).forEach(([k, v]) => { heartCounts[k] = v.up; });
+      myVotedPhotos = new Set(data.my_votes || []);
+      Object.entries(data).forEach(([k, v]) => {
+        if (k !== 'my_votes') heartCounts[k] = v.up;
+      });
       renderGallery();
     })
     .catch(() => {});
 
   /* ===== LIGHTBOX ===== */
   function openLightbox(name) {
+    currentLightboxName = name;
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
     lbImg.src = `./pictures/thumbs/${name}`;
     lb.classList.add('open');
     document.body.style.overflow = 'hidden';
+    updateLightboxHeartUI();
 
     if (prefetched.has(name)) {
       lbImg.src = `./pictures/${name}`;
