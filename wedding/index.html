@@ -1066,6 +1066,8 @@
   let currentLightboxName = null;
   let sortByHearts = false;
 
+  const SHUFFLED = [...PHOTOS].sort(() => Math.random() - 0.5);
+
   /* ===== FULL-RES PREFETCH ===== */
   const prefetched = new Set();
   let prefetchQueue = [];
@@ -1104,7 +1106,7 @@
     }
     const order = sortByHearts
       ? [...PHOTOS].sort((a, b) => (heartCounts[b] || 0) - (heartCounts[a] || 0))
-      : PHOTOS;
+      : SHUFFLED;
 
     if (galleryObserver) galleryObserver.disconnect();
     galleryObserver = new IntersectionObserver((entries) => {
