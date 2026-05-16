@@ -113,17 +113,36 @@ npx wrangler kv key delete --binding VOTES "ip:xxx.xxx.xxx.xxx"
 const ALLOWED_ORIGIN = 'https://qkatlehdrnf.github.io';  // 소문자로 잘못 씀
 ```
 
-**확인 방법**  
-실제 GitHub Pages URL로 직접 curl:
-```bash
-# GitHub Pages가 리다이렉트 없이 실제로 서빙하는 URL 확인
-curl -sIL https://qkaTlehdrnf.github.io/wedding/ | grep -i "location\|200"
+**더 미묘한 케이스 — GitHub Pages는 mixed-case와 lowercase 호스트명을 둘 다 200으로 서빙한다**  
+사용자명이 `qkaTlehdrnf`(대문자 T 포함)여도 GitHub은 `https://qkaTlehdrnf.github.io/`와 `https://qkatlehdrnf.github.io/` 둘 다 redirect 없이 정상 응답한다. 모바일 브라우저·iOS·일부 메신저는 hostname을 자동으로 lowercase로 정규화해서 주소창에 표시하고 Origin 헤더에도 그렇게 보낸다.
 
-# 해당 URL을 Origin으로 달아서 CORS 헤더 확인
-curl -sv https://wedding-votes.wonjoong11.workers.dev/votes \
-  -H "Origin: https://qkaTlehdrnf.github.io" 2>&1 | grep -i "access-control-allow-origin"
+이 프로젝트에서 실제로 발생한 증상: ALLOWED_ORIGIN이 mixed-case로 박혀 있어서 lowercase Origin을 보내는 사용자의 OPTIONS preflight가 거부됨 → POST가 아예 안 나감 → KV에 사용자 투표 0건. 본인이 mixed-case URL로 접속해서 테스트할 때는 잘 되니까 알아채기 어렵다.
+
+**올바른 처리 — 비교는 lowercase로**  
+```js
+const ALLOWED_ORIGIN = 'https://qkaTlehdrnf.github.io';
+const ALLOWED_ORIGIN_LC = ALLOWED_ORIGIN.toLowerCase();
+const lc = (origin || '').toLowerCase();
+const ok = lc === ALLOWED_ORIGIN_LC || lc.startsWith('http://localhost');
+// 응답 ACAO는 요청 Origin을 그대로 돌려줘야 함 (대소문자 보존)
+'Access-Control-Allow-Origin': ok ? origin : ALLOWED_ORIGIN,
 ```
-응답의 `Access-Control-Allow-Origin` 값이 요청한 Origin과 정확히 일치해야 한다.
+
+**확인 방법**  
+mixed-case와 lowercase 양쪽 Origin으로 각각 curl:
+```bash
+# GitHub Pages가 두 URL 다 200을 주는지 확인
+curl -sI https://qkaTlehdrnf.github.io/wedding/ | head -1
+curl -sI https://qkatlehdrnf.github.io/wedding/ | head -1
+
+# 양쪽 Origin으로 CORS 헤더가 요청 Origin과 정확히 일치하는지 확인
+for o in "https://qkaTlehdrnf.github.io" "https://qkatlehdrnf.github.io"; do
+  echo "== $o =="
+  curl -sv https://wedding-votes.wonjoong11.workers.dev/votes \
+    -H "Origin: $o" 2>&1 | grep -i "access-control-allow-origin"
+done
+```
+응답의 `Access-Control-Allow-Origin` 값이 요청한 Origin과 **글자 그대로** 일치해야 한다. 한 쪽만 일치하면 lowercase URL로 접속한 사용자는 전부 차단된다.
 
 ---
 
@@ -319,7 +338,54 @@ npx wrangler kv key delete --binding VOTES "ip:테스트에_사용한_IP"
 
 ---
 
-### TRAP-11: 프롬프트 기반 편집(Qwen 등)에서 변형 범위를 제한하지 않음 → 원본과 전혀 다른 사진
+---
+
+### TRAP-11: "CORS로 API를 보호했다" → 실제로는 비브라우저 클라이언트에 완전히 열려있음
+
+**핵심 결론 먼저**
+
+| 공격 방법 | 가능 여부 | 이유 |
+|---|---|---|
+| `CF-Connecting-IP` 헤더를 요청에 직접 설정해 IP 위조 | **불가** | Cloudflare 엣지가 클라이언트 설정값을 무시하고 실제 TCP 연결 IP로 덮어씀 (error 1000 반환) |
+| curl·스크립트로 Origin 헤더 없이 POST /vote 직접 호출 | **가능** | CORS는 브라우저 전용 정책. 비브라우저 클라이언트는 적용 안 받음 |
+| VPN·프록시로 IP를 바꿔가며 같은 사진에 여러 번 투표 | **가능** | IP 중복 방지는 고정 IP 기준. 다른 IP면 별개의 투표로 처리됨 |
+| GET /votes로 누가 어떤 사진에 투표했는지 추적 | **가능** | `my_votes` 응답이 IP별 투표 목록을 반환하고, IP는 노출되지 않지만 패턴 분석 가능 |
+
+**왜 CORS는 서버 보안이 아닌가**
+
+CORS는 브라우저가 스크립트의 cross-origin 응답 읽기를 차단하는 정책이다. 서버는 OPTIONS preflight에 응답만 할 뿐, 실제 요청을 거부하는 것이 아니다.
+
+```bash
+# 브라우저: Origin 헤더 검사 → 응답 읽기 차단 (CORS 오류)
+# curl: Origin 헤더 없이 그냥 호출 → 서버는 정상 처리
+
+curl -X POST https://wedding-votes.wonjoong11.workers.dev/vote \
+  -H "Content-Type: application/json" \
+  -d '{"photo":"01_SIN00008-1.jpg","action":"up"}'
+# → {"up":1,"already_voted":false}  ← 정상 저장됨
+```
+
+현재 Worker 코드의 CORS 검사는 `Access-Control-Allow-Origin` 헤더 값을 결정할 뿐, 요청을 막지 않는다.
+
+**이 프로젝트에서의 실제 위험 수준**
+
+결혼 사진 인기투표는 금전·개인정보 피해가 없다. 최악의 경우는 누군가 특정 사진의 하트를 인위적으로 올리는 것. 결혼식 하객 대상이라 외부 공격자가 URL을 알 가능성도 낮다. **현재 구조로 충분하다.**
+
+단, 더 민감한 서비스라면:
+
+```js
+// 방어 옵션 1: Cloudflare Turnstile (무료 CAPTCHA)
+// 방어 옵션 2: 요청 rate limit — KV에 IP별 분당 횟수 저장
+// 방어 옵션 3: Worker에서 Origin 헤더 없으면 요청 거부
+if (!origin || origin !== ALLOWED_ORIGIN) {
+  return new Response('Forbidden', { status: 403, headers });
+}
+// → 비브라우저 직접 호출 차단. 단, VPN 우회는 여전히 가능.
+```
+
+---
+
+### TRAP-12: 프롬프트 기반 편집(Qwen 등)에서 변형 범위를 제한하지 않음 → 원본과 전혀 다른 사진
 
 **언제 발생하나**  
 Qwen-Image-Edit, InstructPix2Pix 등 diffusion 기반 이미지 편집 모델에 편집 목표만 써서 프롬프트를 구성할 때.
@@ -374,7 +440,7 @@ NEGATIVE = (
 
 ---
 
-### TRAP-12: 오픈소스 초해상도(upscaling)로 고화질 변환 시도 → 어색한 결과
+### TRAP-13: 오픈소스 초해상도(upscaling)로 고화질 변환 시도 → 어색한 결과
 
 **현황 (2026년 5월 기준)**  
 RealESRGAN, ESRGAN, CodeFormer 등 오픈소스 upscaling 모델로 결혼사진을 고해상도로 변환하면 **특히 얼굴과 배경 경계에서 AI 특유의 부자연스러움이 생긴다**. 피부가 플라스틱처럼 보이거나, 배경 보케가 규칙적인 패턴으로 바뀌거나, 머리카락 경계가 너무 선명해진다.

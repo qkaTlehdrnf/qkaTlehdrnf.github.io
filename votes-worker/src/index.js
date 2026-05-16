@@ -1,7 +1,9 @@
 const ALLOWED_ORIGIN = 'https://qkaTlehdrnf.github.io';
+const ALLOWED_ORIGIN_LC = ALLOWED_ORIGIN.toLowerCase();
 
 function corsHeaders(origin) {
-  const ok = origin === ALLOWED_ORIGIN || (origin || '').startsWith('http://localhost');
+  const lc = (origin || '').toLowerCase();
+  const ok = lc === ALLOWED_ORIGIN_LC || lc.startsWith('http://localhost');
   return {
     'Access-Control-Allow-Origin': ok ? origin : ALLOWED_ORIGIN,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
