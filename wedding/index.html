@@ -32,66 +32,40 @@
       justify-content: center;
       cursor: pointer;
       transition: opacity 0.9s ease, visibility 0.9s ease;
+      overflow: hidden;
     }
     #intro.hidden {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
-    #petal-canvas {
+    #intro-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #1a1410;
+    }
+    #intro-vignette {
       position: absolute;
       inset: 0;
       pointer-events: none;
-    }
-    .intro-text {
-      text-align: center;
-      color: #f5ede3;
-      z-index: 1;
-      user-select: none;
-    }
-    .intro-deco {
-      font-size: 0.65rem;
-      letter-spacing: 0.6em;
-      color: #7a6a5a;
-      margin-bottom: 1.8rem;
-      opacity: 0;
-      animation: fadeInUp 1s ease 0.3s forwards;
-    }
-    .intro-names {
-      font-size: 2.6rem;
-      font-weight: 400;
-      letter-spacing: 0.12em;
-      opacity: 0;
-      animation: fadeInUp 1.2s ease 0.8s forwards;
-    }
-    .intro-heart {
-      font-size: 1rem;
-      color: #c47060;
-      margin: 0 0.6rem;
-      vertical-align: middle;
-    }
-    .intro-line {
-      width: 40px;
-      height: 1px;
-      background: #5a4a3a;
-      margin: 1.4rem auto;
-      opacity: 0;
-      animation: fadeInUp 1s ease 1.5s forwards;
-    }
-    .intro-date {
-      font-size: 0.85rem;
-      letter-spacing: 0.35em;
-      color: #c9b99a;
-      opacity: 0;
-      animation: fadeInUp 1.2s ease 1.6s forwards;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%);
     }
     .intro-touch {
-      margin-top: 3.5rem;
+      position: absolute;
+      bottom: 2.4rem;
+      left: 0;
+      right: 0;
+      text-align: center;
       font-size: 0.72rem;
       letter-spacing: 0.25em;
-      color: #6a5a4a;
+      color: #f0e0d0;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+      user-select: none;
       opacity: 0;
-      animation: fadeInUp 1s ease 2.4s forwards, blink 2.2s ease 3.4s infinite;
+      animation: fadeInUp 1s ease 1.2s forwards, blink 2.2s ease 2.4s infinite;
     }
 
     @keyframes fadeInUp {
@@ -695,16 +669,13 @@
 
 <!-- ===== OPENING INTRO ===== -->
 <div id="intro" onclick="dismissIntro()">
-  <canvas id="petal-canvas"></canvas>
-  <div class="intro-text">
-    <div class="intro-deco">WEDDING INVITATION</div>
-    <div class="intro-names">
-      원중<span class="intro-heart">♥</span>홍우
-    </div>
-    <div class="intro-line"></div>
-    <div class="intro-date">2026 &nbsp;·&nbsp; 08 &nbsp;·&nbsp; 17</div>
-    <div class="intro-touch">화면을 터치해주세요</div>
-  </div>
+  <video id="intro-video"
+         src="./intro.mp4"
+         autoplay muted loop playsinline preload="auto"
+         disablepictureinpicture disableremoteplayback
+         aria-hidden="true"></video>
+  <div id="intro-vignette"></div>
+  <div class="intro-touch" data-i18n="introTouch">화면을 터치해주세요</div>
 </div>
 
 <!-- ===== MAIN CONTENT ===== -->
@@ -735,7 +706,7 @@
   <section class="section invitation">
     <div class="section-label">Invitation</div>
     <div class="divider"></div>
-    <p class="invitation-poem">
+    <p class="invitation-poem" data-i18n="invitationPoem">
       서로가 마주보며 다져온 사랑을<br>
       이제 함께 걸어갈 큰 사랑으로 키우고자 합니다.<br>
       <br>
@@ -748,7 +719,7 @@
       <div class="family-line">
         <span>김성철 · 강성숙</span>
         <div class="family-dot"></div>
-        <span>의 아들 <strong>원중</strong></span>
+        <span data-i18n="familySuffixSon">의 아들 <strong>원중</strong></span>
       </div>
       <div class="family-line" style="margin-top: 0.5rem;">
         <!--
@@ -757,7 +728,7 @@
         -->
         <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
         <div class="family-dot"></div>
-        <span>의 딸 <strong>홍우</strong></span>
+        <span data-i18n="familySuffixDaughter">의 딸 <strong>홍우</strong></span>
       </div>
     </div>
   </section>
@@ -767,7 +738,7 @@
     <div class="section-label">D - Day</div>
     <div class="divider"></div>
     <div id="dday-row" class="dday-row"></div>
-    <div class="dday-sub">2026년 8월 17일 월요일 오전 11시</div>
+    <div class="dday-sub" data-i18n="ddaySub">2026년 8월 17일 월요일 오전 11시</div>
   </section>
 
   <!-- GALLERY -->
@@ -775,7 +746,7 @@
     <div class="section-label" style="padding: 0 2rem;">Gallery</div>
     <div class="divider"></div>
     <div class="gallery-sort-bar">
-      <button class="sort-toggle" id="sort-toggle" onclick="toggleSort()">추천순 정렬</button>
+      <button class="sort-toggle" id="sort-toggle" onclick="toggleSort()" data-i18n="sortToggle">추천순 정렬</button>
     </div>
     <div class="gallery-scroll" id="gallery-scroll"></div>
   </section>
@@ -784,8 +755,8 @@
   <section class="section location-section">
     <div class="section-label">Location</div>
     <div class="divider"></div>
-    <div class="venue-name">보타닉파크 웨딩홀</div>
-    <div class="venue-address">
+    <div class="venue-name" data-i18n="venueName">보타닉파크 웨딩홀</div>
+    <div class="venue-address" data-i18n="venueAddress">
       서울특별시 강서구 마곡중앙5로 6<br>
       보타닉 푸르지오시티 L층 (로비층)<br>
       TEL. 02-2662-8300
@@ -800,8 +771,8 @@
       <div class="transport-item">
         <div class="transport-icon" style="background:#e8f0f8;">🚇</div>
         <div>
-          <div class="transport-title">지하철</div>
-          <div class="transport-content">
+          <div class="transport-title" data-i18n="transportSubway">지하철</div>
+          <div class="transport-content" data-i18n="transportSubwayContent">
             9호선 마곡나루역 1, 2번 출구<br>
             공항철도 → 9호선 환승 후 마곡나루역 하차
           </div>
@@ -810,8 +781,8 @@
       <div class="transport-item">
         <div class="transport-icon" style="background:#f0f8e8;">🚌</div>
         <div>
-          <div class="transport-title">버스</div>
-          <div class="transport-content">
+          <div class="transport-title" data-i18n="transportBus">버스</div>
+          <div class="transport-content" data-i18n="transportBusContent">
             마곡나루역 정류장 하차<br>
             간선 N64<br>
             지선 6642 · 6645 · 6648<br>
@@ -822,8 +793,8 @@
       <div class="transport-item">
         <div class="transport-icon" style="background:#f8f4e8;">🚗</div>
         <div>
-          <div class="transport-title">자가용</div>
-          <div class="transport-content">
+          <div class="transport-title" data-i18n="transportCar">자가용</div>
+          <div class="transport-content" data-i18n="transportCarContent">
             네비게이션: <strong>"보타닉파크웨딩 주차장"</strong><br>
             또는 마곡동 760 / 마곡중앙5로 6
           </div>
@@ -832,19 +803,19 @@
     </div>
 
     <div class="map-buttons">
-      <a class="map-btn" href="https://map.kakao.com/link/search/보타닉파크웨딩홀" target="_blank" rel="noopener">카카오맵</a>
-      <a class="map-btn" href="https://map.naver.com/v5/search/보타닉파크웨딩홀" target="_blank" rel="noopener">네이버지도</a>
+      <a class="map-btn" href="https://map.kakao.com/link/search/보타닉파크웨딩홀" target="_blank" rel="noopener" data-i18n="mapBtnKakao">카카오맵</a>
+      <a class="map-btn" href="https://map.naver.com/v5/search/보타닉파크웨딩홀" target="_blank" rel="noopener" data-i18n="mapBtnNaver">네이버지도</a>
     </div>
   </section>
 
   <!-- ACCOUNT -->
   <section class="section account-section">
-    <div class="section-label">마음 전하기</div>
+    <div class="section-label" data-i18n="accountLabel">마음 전하기</div>
     <div class="divider"></div>
     <!-- 신랑측 -->
     <div class="account-card">
       <div class="account-header" onclick="toggleAccount(this)">
-        <span class="account-header-name">신랑측 계좌번호</span>
+        <span class="account-header-name" data-i18n="accountGroom">신랑측 계좌번호</span>
         <span class="account-chevron">▾</span>
       </div>
       <div class="account-body">
@@ -854,14 +825,14 @@
             <div class="account-number">1002-244-474182</div>
             <div class="account-holder">김원중</div>
           </div>
-          <button class="copy-btn" onclick="copyAccount('1002-244-474182')">복사</button>
+          <button class="copy-btn" onclick="copyAccount('1002-244-474182')" data-i18n="accountCopy">복사</button>
         </div>
       </div>
     </div>
 
     <div class="account-card">
       <div class="account-header" onclick="toggleAccount(this)">
-        <span class="account-header-name">신부측 계좌번호</span>
+        <span class="account-header-name" data-i18n="accountBride">신부측 계좌번호</span>
         <span class="account-chevron">▾</span>
       </div>
       <div class="account-body">
@@ -871,7 +842,7 @@
             <div class="account-number">1002-062-699558</div>
             <div class="account-holder">고홍우</div>
           </div>
-          <button class="copy-btn" onclick="copyAccount('1002-062-699558')">복사</button>
+          <button class="copy-btn" onclick="copyAccount('1002-062-699558')" data-i18n="accountCopy">복사</button>
         </div>
       </div>
     </div>
@@ -881,7 +852,7 @@
   <footer>
     <div class="footer-names">김원중 &nbsp;·&nbsp; 고홍우</div>
     2026 · 08 · 17<br>
-    보타닉파크 웨딩홀
+    <span data-i18n="footerVenue">보타닉파크 웨딩홀</span>
   </footer>
 
 </div><!-- /#main-content -->
@@ -899,78 +870,99 @@
   </button>
 </div>
 
-<button id="share-fab" onclick="shareInvitation()" title="공유하기">⬆</button>
+<button id="share-fab" onclick="shareInvitation()" title="공유하기" aria-label="공유하기" data-i18n-attr="title:shareTooltip;aria-label:shareTooltip">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="18" cy="5" r="3"></circle>
+    <circle cx="6" cy="12" r="3"></circle>
+    <circle cx="18" cy="19" r="3"></circle>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+  </svg>
+</button>
 
-<div id="copy-toast">계좌번호가 복사되었습니다</div>
+<div id="copy-toast" data-i18n="toastAccountCopied">계좌번호가 복사되었습니다</div>
 
 <script>
-  /* ===== PETAL ANIMATION ===== */
-  (function () {
-    const canvas = document.getElementById('petal-canvas');
-    const ctx = canvas.getContext('2d');
-    let petals = [];
-    let animId;
-    const COLORS = ['#c49090', '#e0b8b0', '#d4a8b8', '#c8b0c4', '#e8c8c0', '#d4bcb0'];
+  /* ===== I18N (Chinese fallback for zh-* system languages) ===== */
+  const I18N_ZH = {
+    pageTitle: '원중 ♥ 홍우 · 婚礼邀请',
+    ogDesc: '2026年8月17日 周一 上午11时 · Botanic Park 婚礼会场',
+    introTouch: '请轻触屏幕',
+    invitationPoem:
+      '我们怀着相视而长养的爱，<br>愿将其培育为携手同行的更深厚的爱。<br><br>在我们以爱与信任<br>迈出人生新一步的此刻，<br>恳请您莅临祝福，将是我们莫大的喜悦。',
+    familySuffixSon: '之子 <strong>원중</strong>',
+    familySuffixDaughter: '之女 <strong>홍우</strong>',
+    ddaySub: '2026年8月17日 周一 上午11时',
+    sortToggle: '按人气排序',
+    galleryEmpty: '请将照片放入 pictures 文件夹，并在 PHOTOS 数组中填入文件名。',
+    venueName: 'Botanic Park 婚礼会场',
+    venueAddress:
+      '首尔特别市 江西区 麻谷中央5路 6<br>Botanic Prugio City L层 (大堂层)<br>TEL. 02-2662-8300',
+    transportSubway: '地铁',
+    transportSubwayContent:
+      '9号线 麻谷渡口站 1、2号出口<br>机场铁路 → 换乘9号线 在麻谷渡口站下车',
+    transportBus: '公交',
+    transportBusContent:
+      '在「麻谷渡口站」站点下车<br>干线 N64<br>支线 6642 · 6645 · 6648<br>社区 江西05-1 · 江西07',
+    transportCar: '自驾',
+    transportCarContent:
+      '导航搜索：<strong>"Botanic Park Wedding 停车场"</strong><br>或 麻谷洞 760 / 麻谷中央5路 6',
+    mapBtnKakao: 'Kakao地图',
+    mapBtnNaver: 'Naver地图',
+    accountLabel: '心意传达',
+    accountGroom: '新郎方 账号',
+    accountBride: '新娘方 账号',
+    accountCopy: '复制',
+    footerVenue: 'Botanic Park 婚礼会场',
+    shareTooltip: '分享',
+    shareTitle: '원중 ♥ 홍우 · 婚礼邀请',
+    shareText: '2026年8月17日 周一 上午11时 · Botanic Park 婚礼会场',
+    toastAccountCopied: '账号已复制',
+    toastLinkCopied: '链接已复制',
+  };
 
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+  const LANG = (function () {
+    const langs = navigator.languages && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language || 'ko'];
+    for (const l of langs) {
+      const lower = (l || '').toLowerCase();
+      if (lower.startsWith('zh')) return 'zh';
+      if (lower.startsWith('ko')) return 'ko';
     }
-    resize();
-    window.addEventListener('resize', resize);
+    return 'ko';
+  })();
 
-    function rand(a, b) { return a + Math.random() * (b - a); }
+  function t(key, fallback) {
+    if (LANG === 'zh' && I18N_ZH[key] != null) return I18N_ZH[key];
+    return fallback != null ? fallback : key;
+  }
 
-    function spawnPetal() {
-      return {
-        x: rand(0, canvas.width),
-        y: rand(-60, -5),
-        rx: rand(5, 11),
-        ry: rand(3, 7),
-        vy: rand(1.0, 2.6),
-        vx: rand(-0.6, 0.6),
-        rot: rand(0, Math.PI * 2),
-        rotV: rand(-0.025, 0.025),
-        wobble: rand(0, Math.PI * 2),
-        wobbleS: rand(0.02, 0.04),
-        alpha: rand(0.45, 0.85),
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      };
-    }
+  (function applyI18n() {
+    if (LANG !== 'zh') return;
+    document.documentElement.lang = 'zh';
+    document.title = I18N_ZH.pageTitle;
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', I18N_ZH.pageTitle);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', I18N_ZH.ogDesc);
 
-    function drawPetal(p) {
-      ctx.save();
-      ctx.globalAlpha = p.alpha;
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function loop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (petals.length < 45) petals.push(spawnPetal());
-      petals = petals.filter(p => p.y < canvas.height + 20);
-      for (const p of petals) {
-        p.wobble += p.wobbleS;
-        p.x += p.vx + Math.sin(p.wobble) * 0.55;
-        p.y += p.vy;
-        p.rot += p.rotV;
-        drawPetal(p);
-      }
-      animId = requestAnimationFrame(loop);
-    }
-    loop();
-
-    window._stopPetals = () => cancelAnimationFrame(animId);
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (I18N_ZH[key] != null) el.innerHTML = I18N_ZH[key];
+    });
+    document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+      el.getAttribute('data-i18n-attr').split(';').forEach(pair => {
+        const [attr, key] = pair.split(':').map(s => s.trim());
+        if (attr && key && I18N_ZH[key] != null) el.setAttribute(attr, I18N_ZH[key]);
+      });
+    });
   })();
 
   /* ===== INTRO DISMISS ===== */
   function dismissIntro() {
-    window._stopPetals && window._stopPetals();
+    const v = document.getElementById('intro-video');
+    if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) {} }
     document.getElementById('intro').classList.add('hidden');
     document.getElementById('main-content').classList.add('visible');
   }
@@ -1151,7 +1143,7 @@
   function renderGallery() {
     const wrap = document.getElementById('gallery-scroll');
     if (PHOTOS.length === 0) {
-      wrap.innerHTML = '<p class="gallery-empty">pictures 폴더에 사진을 추가한 후 위 PHOTOS 배열에 파일명을 입력해주세요.</p>';
+      wrap.innerHTML = `<p class="gallery-empty">${t('galleryEmpty', 'pictures 폴더에 사진을 추가한 후 위 PHOTOS 배열에 파일명을 입력해주세요.')}</p>`;
       return;
     }
     const order = sortByHearts
@@ -1375,15 +1367,15 @@
   /* ===== SHARE ===== */
   function shareInvitation() {
     const data = {
-      title: '김원중 ♥ 고홍우 결혼합니다',
-      text: '2026년 8월 17일 월요일 오전 11시 · 보타닉파크 웨딩홀',
+      title: t('shareTitle', '김원중 ♥ 고홍우 결혼합니다'),
+      text: t('shareText', '2026년 8월 17일 월요일 오전 11시 · 보타닉파크 웨딩홀'),
       url: window.location.href,
     };
     if (navigator.share) {
       navigator.share(data).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href).then(() => {
-        showToast('링크가 복사되었습니다');
+        showToast(t('toastLinkCopied', '링크가 복사되었습니다'));
       }).catch(() => {});
     }
   }
@@ -1407,7 +1399,7 @@
   /* ===== COPY ACCOUNT ===== */
   function copyAccount(text) {
     navigator.clipboard.writeText(text).then(() => {
-      showToast('계좌번호가 복사되었습니다');
+      showToast(t('toastAccountCopied', '계좌번호가 복사되었습니다'));
     }).catch(() => {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -1417,7 +1409,7 @@
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      showToast('계좌번호가 복사되었습니다');
+      showToast(t('toastAccountCopied', '계좌번호가 복사되었습니다'));
     });
   }
 
