@@ -31,7 +31,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: opacity 1.6s ease, visibility 1.6s ease;
+      transition: opacity 1.4s ease, visibility 1.4s ease;
       overflow: hidden;
     }
     #intro.hidden {
@@ -68,14 +68,14 @@
       opacity: 0;
     }
     #intro.flashing #intro-flash {
-      animation: introFlashBloom 1.6s ease-out forwards;
+      animation: introFlashBloom 0.9s ease-out forwards;
     }
 
     @keyframes introFlashBloom {
       0%   { opacity: 0; }
-      35%  { opacity: 1; }      /* peak bright */
-      70%  { opacity: 0.7; }    /* start to settle */
-      100% { opacity: 0; }      /* fade out, revealing main content underneath */
+      100% { opacity: 1; }      /* bloom to peak white, then hold —
+                                   the intro layer's own opacity fade
+                                   dissolves the white into the photo */
     }
     .intro-touch {
       position: absolute;
@@ -1022,19 +1022,21 @@
     const main = document.getElementById('main-content');
     const v = document.getElementById('intro-video');
 
-    // Phase 1: brighten the video frame and bloom the flash overlay
+    // Phase 1 (0–900ms): brighten the video and bloom the flash to peak white
     intro.classList.add('flashing');
 
-    // Phase 2: reveal main content underneath, around the flash peak
-    setTimeout(() => { main.classList.add('visible'); }, 600);
+    // Phase 2 (500ms): main content begins fading in behind the white flash
+    setTimeout(() => { main.classList.add('visible'); }, 500);
 
-    // Phase 3: fade the intro layer out as the bloom settles
-    setTimeout(() => { intro.classList.add('hidden'); }, 1500);
+    // Phase 3 (900ms, at flash peak): fade the entire intro layer out —
+    //   the flash stays opaque while the intro fades, so the white dissolves
+    //   directly into the photo without exposing the video frame
+    setTimeout(() => { intro.classList.add('hidden'); }, 900);
 
-    // Phase 4: tear down the video element once it's no longer visible
+    // Phase 4: tear down the video element once the intro is fully gone
     setTimeout(() => {
       if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) {} }
-    }, 3200);
+    }, 2500);
   }
 
   // Auto-dismiss when the intro video ends
