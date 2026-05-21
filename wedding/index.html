@@ -722,10 +722,18 @@
 <!-- ===== OPENING INTRO ===== -->
 <div id="intro" onclick="dismissIntro()">
   <video id="intro-video"
-         src="./intro.mp4"
          autoplay muted playsinline preload="auto"
          disablepictureinpicture disableremoteplayback
          aria-hidden="true"></video>
+  <script>
+    // Select intro video by URL hash: #tensorflow → tensorflow variant, otherwise default
+    (function () {
+      var v = document.getElementById('intro-video');
+      var isTf = /(^|[#&])tensorflow(\b|$)/i.test(location.hash);
+      v.src = isTf ? './intro-tensorflow.mp4' : './intro.mp4';
+      v.load();
+    })();
+  </script>
   <div id="intro-vignette"></div>
   <div id="intro-flash"></div>
   <div class="intro-touch" data-i18n="introTouch">화면을 터치해주세요</div>
