@@ -31,7 +31,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: opacity 0.9s ease, visibility 0.9s ease;
+      transition: opacity 1.6s ease, visibility 1.6s ease;
       overflow: hidden;
     }
     #intro.hidden {
@@ -46,41 +46,93 @@
       height: 100%;
       object-fit: cover;
       background: #1a1410;
+      transition: filter 1.6s ease, opacity 1.2s ease;
+    }
+    #intro.flashing #intro-video {
+      filter: brightness(2.6) saturate(0.5);
+      opacity: 0.4;
     }
     #intro-vignette {
       position: absolute;
       inset: 0;
       pointer-events: none;
       background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%);
+      transition: opacity 0.8s ease;
+    }
+    #intro.flashing #intro-vignette { opacity: 0; }
+    #intro-flash {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, #ffffff 0%, #fff8ec 45%, #fff2dc 100%);
+      opacity: 0;
+    }
+    #intro.flashing #intro-flash {
+      animation: introFlashBloom 1.6s ease-out forwards;
+    }
+
+    @keyframes introFlashBloom {
+      0%   { opacity: 0; }
+      35%  { opacity: 1; }      /* peak bright */
+      70%  { opacity: 0.7; }    /* start to settle */
+      100% { opacity: 0; }      /* fade out, revealing main content underneath */
     }
     .intro-touch {
       position: absolute;
-      bottom: 2.4rem;
+      bottom: 3.4rem;
       left: 0;
       right: 0;
       text-align: center;
-      font-size: 0.72rem;
-      letter-spacing: 0.25em;
-      color: #f0e0d0;
-      text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.32em;
+      color: #fff5e6;
+      text-shadow:
+        0 0 14px rgba(0,0,0,0.85),
+        0 2px 10px rgba(0,0,0,0.7),
+        0 1px 2px rgba(0,0,0,0.9);
       user-select: none;
       opacity: 0;
-      animation: fadeInUp 1s ease 1.2s forwards, blink 2.2s ease 2.4s infinite;
+      padding: 0.6rem 1.2rem;
+      animation: fadeInUp 1s ease 1.2s forwards, glow 2.6s ease 2.4s infinite;
     }
+    .intro-touch::before,
+    .intro-touch::after {
+      content: '';
+      display: inline-block;
+      width: 1.6rem;
+      height: 1px;
+      background: rgba(255, 245, 230, 0.8);
+      vertical-align: middle;
+      margin: 0 0.8rem;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+    }
+    #intro.flashing .intro-touch { opacity: 0; transition: opacity 0.5s ease; }
 
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(18px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    @keyframes blink {
-      0%, 100% { opacity: 0.9; }
-      50% { opacity: 0.2; }
+    @keyframes glow {
+      0%, 100% {
+        opacity: 1;
+        text-shadow:
+          0 0 14px rgba(0,0,0,0.85),
+          0 0 22px rgba(255, 220, 170, 0.55),
+          0 2px 10px rgba(0,0,0,0.7);
+      }
+      50% {
+        opacity: 0.55;
+        text-shadow:
+          0 0 10px rgba(0,0,0,0.85),
+          0 2px 10px rgba(0,0,0,0.7);
+      }
     }
 
     /* ===== MAIN CONTENT ===== */
     #main-content {
       opacity: 0;
-      transition: opacity 1s ease 0.2s;
+      transition: opacity 1.4s ease 0.2s;
     }
     #main-content.visible { opacity: 1; }
 
@@ -671,10 +723,11 @@
 <div id="intro" onclick="dismissIntro()">
   <video id="intro-video"
          src="./intro.mp4"
-         autoplay muted loop playsinline preload="auto"
+         autoplay muted playsinline preload="auto"
          disablepictureinpicture disableremoteplayback
          aria-hidden="true"></video>
   <div id="intro-vignette"></div>
+  <div id="intro-flash"></div>
   <div class="intro-touch" data-i18n="introTouch">화면을 터치해주세요</div>
 </div>
 
@@ -960,12 +1013,36 @@
   })();
 
   /* ===== INTRO DISMISS ===== */
+  let introDismissed = false;
   function dismissIntro() {
+    if (introDismissed) return;
+    introDismissed = true;
+
+    const intro = document.getElementById('intro');
+    const main = document.getElementById('main-content');
     const v = document.getElementById('intro-video');
-    if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) {} }
-    document.getElementById('intro').classList.add('hidden');
-    document.getElementById('main-content').classList.add('visible');
+
+    // Phase 1: brighten the video frame and bloom the flash overlay
+    intro.classList.add('flashing');
+
+    // Phase 2: reveal main content underneath, around the flash peak
+    setTimeout(() => { main.classList.add('visible'); }, 600);
+
+    // Phase 3: fade the intro layer out as the bloom settles
+    setTimeout(() => { intro.classList.add('hidden'); }, 1500);
+
+    // Phase 4: tear down the video element once it's no longer visible
+    setTimeout(() => {
+      if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) {} }
+    }, 3200);
   }
+
+  // Auto-dismiss when the intro video ends
+  (function () {
+    const v = document.getElementById('intro-video');
+    if (!v) return;
+    v.addEventListener('ended', () => { dismissIntro(); });
+  })();
 
   /* ===== D-DAY COUNTER ===== */
   const WEDDING = new Date('2026-08-17T11:00:00');
