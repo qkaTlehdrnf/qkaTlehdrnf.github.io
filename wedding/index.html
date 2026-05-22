@@ -726,8 +726,20 @@
          disablepictureinpicture disableremoteplayback
          aria-hidden="true"></video>
   <script>
-    // Select intro video by URL hash: #tensorflow → tensorflow variant, otherwise default
+    // Skip intro entirely for Chinese visitors; otherwise select intro video by URL hash.
     (function () {
+      var langs = (navigator.languages && navigator.languages.length)
+        ? navigator.languages : [navigator.language || ''];
+      var isZh = langs.some(function (l) { return (l || '').toLowerCase().startsWith('zh'); });
+      if (isZh) {
+        var intro = document.getElementById('intro');
+        if (intro && intro.parentNode) intro.parentNode.removeChild(intro);
+        document.addEventListener('DOMContentLoaded', function () {
+          var main = document.getElementById('main-content');
+          if (main) main.classList.add('visible');
+        });
+        return;
+      }
       var v = document.getElementById('intro-video');
       var isTf = /(^|[#&])tensorflow(\b|$)/i.test(location.hash);
       v.src = isTf ? './intro-tensorflow.mp4' : './intro.mp4';
@@ -946,38 +958,38 @@
 <script>
   /* ===== I18N (Chinese fallback for zh-* system languages) ===== */
   const I18N_ZH = {
-    pageTitle: '원중 ♥ 홍우 · 婚礼邀请',
-    ogDesc: '2026年8月17日 周一 上午11时 · Botanic Park 婚礼会场',
-    introTouch: '请轻触屏幕',
+    pageTitle: '金元中 ♥ 高红雨 即将结婚',
+    ogDesc: '2026年8月17日 星期一 上午11点 · Botanic Park 婚礼大厅',
+    introTouch: '请触摸屏幕',
     invitationPoem:
-      '我们怀着相视而长养的爱，<br>愿将其培育为携手同行的更深厚的爱。<br><br>在我们以爱与信任<br>迈出人生新一步的此刻，<br>恳请您莅临祝福，将是我们莫大的喜悦。',
-    familySuffixSon: '之子 <strong>원중</strong>',
-    familySuffixDaughter: '之女 <strong>홍우</strong>',
-    ddaySub: '2026年8月17日 周一 上午11时',
-    sortToggle: '按人气排序',
-    galleryEmpty: '请将照片放入 pictures 文件夹，并在 PHOTOS 数组中填入文件名。',
-    venueName: 'Botanic Park 婚礼会场',
+      '我们一路相望相守、坚定彼此的爱<br>如今愿将这份爱培育成携手同行的深情。<br><br>我们二人将以爱与信任<br>迈出人生新的第一步<br>诚邀您莅临见证并给予祝福，届时将是我们无比的喜悦。',
+    familySuffixSon: '之子 <strong>元中</strong>',
+    familySuffixDaughter: '之女 <strong>红雨</strong>',
+    ddaySub: '2026年8月17日 星期一 上午11点',
+    sortToggle: '按推荐顺序排序',
+    galleryEmpty: '请在 pictures 文件夹中添加照片后，在上方 PHOTOS 数组中输入文件名。',
+    venueName: 'Botanic Park 婚礼大厅',
     venueAddress:
-      '首尔特别市 江西区 麻谷中央5路 6<br>Botanic Prugio City L层 (大堂层)<br>TEL. 02-2662-8300',
+      '首尔特别市江西区麻谷中央5路6号<br>Botanic Prugio City L层（大厅层）<br>TEL. 02-2662-8300',
     transportSubway: '地铁',
     transportSubwayContent:
-      '9号线 麻谷渡口站 1、2号出口<br>机场铁路 → 换乘9号线 在麻谷渡口站下车',
-    transportBus: '公交',
+      '9号线 麻谷渡口站 1、2号出口<br>机场铁路 → 换乘9号线后于麻谷渡口站下车',
+    transportBus: '公交车',
     transportBusContent:
-      '在「麻谷渡口站」站点下车<br>干线 N64<br>支线 6642 · 6645 · 6648<br>社区 江西05-1 · 江西07',
+      '于麻谷渡口站公交站下车<br>干线 N64<br>支线 6642 · 6645 · 6648<br>社区巴士 江西05-1 · 江西07',
     transportCar: '自驾',
     transportCarContent:
-      '导航搜索：<strong>"Botanic Park Wedding 停车场"</strong><br>或 麻谷洞 760 / 麻谷中央5路 6',
+      '导航：<strong>“Botanic Park Wedding 停车场”</strong><br>或 麻谷洞760 / 麻谷中央5路6号',
     mapBtnKakao: 'Kakao地图',
     mapBtnNaver: 'Naver地图',
-    accountLabel: '心意传达',
-    accountGroom: '新郎方 账号',
-    accountBride: '新娘方 账号',
+    accountLabel: '传递心意',
+    accountGroom: '新郎方账号',
+    accountBride: '新娘方账号',
     accountCopy: '复制',
-    footerVenue: 'Botanic Park 婚礼会场',
+    footerVenue: 'Botanic Park 婚礼大厅',
     shareTooltip: '分享',
-    shareTitle: '원중 ♥ 홍우 · 婚礼邀请',
-    shareText: '2026年8月17日 周一 上午11时 · Botanic Park 婚礼会场',
+    shareTitle: '金元中 ♥ 高红雨 即将结婚',
+    shareText: '2026年8月17日 星期一 上午11点 · Botanic Park 婚礼大厅',
     toastAccountCopied: '账号已复制',
     toastLinkCopied: '链接已复制',
   };
