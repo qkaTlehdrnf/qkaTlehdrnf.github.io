@@ -763,9 +763,9 @@
     <div class="hero-content">
       <div class="hero-label">WEDDING INVITATION</div>
       <div class="hero-names">
-        김원중
+        <span data-i18n="heroGroomName">김원중</span>
         <span class="hero-ampersand">♥</span>
-        고홍우
+        <span data-i18n="heroBrideName">고홍우</span>
       </div>
       <div class="hero-date">2026 · 08 · 17 &nbsp;MON&nbsp; AM 11:00</div>
     </div>
@@ -843,7 +843,7 @@
           <div class="transport-title" data-i18n="transportSubway">지하철</div>
           <div class="transport-content" data-i18n="transportSubwayContent">
             9호선 마곡나루역 1, 2번 출구<br>
-            공항철도 → 9호선 환승 후 마곡나루역 하차
+            공항철도 마곡나루역 9호선 방면에 위치
           </div>
         </div>
       </div>
@@ -957,6 +957,8 @@
     pageTitle: '金元中 ♥ 高红雨 即将结婚',
     ogDesc: '2026年8月17日 星期一 上午11点 · Botanic Park 婚礼大厅',
     introTouch: '请触摸屏幕',
+    heroGroomName: '金元中',
+    heroBrideName: '高红雨',
     invitationPoem:
       '我们一路相望相守、坚定彼此的爱<br>如今愿将这份爱培育成携手同行的深情。<br><br>我们二人将以爱与信任<br>迈出人生新的第一步<br>诚邀您莅临见证并给予祝福，届时将是我们无比的喜悦。',
     familySuffixSon: '之子 <strong>元中</strong>',
@@ -970,7 +972,7 @@
       '首尔特别市江西区麻谷中央5路6号<br>Botanic Prugio City L层（大厅层）<br>TEL. 02-2662-8300',
     transportSubway: '地铁',
     transportSubwayContent:
-      '9号线 麻谷渡口站 1、2号出口<br>机场铁路 → 换乘9号线后于麻谷渡口站下车',
+      '9号线 麻谷渡口站 1、2号出口<br>机场铁路 麻谷渡口站 位于9号线方向',
     transportBus: '公交车',
     transportBusContent:
       '于麻谷渡口站公交站下车<br>干线 N64<br>支线 6642 · 6645 · 6648<br>社区巴士 江西05-1 · 江西07',
@@ -1027,6 +1029,9 @@
         if (attr && key && I18N_ZH[key] != null) el.setAttribute(attr, I18N_ZH[key]);
       });
     });
+
+    const accountSection = document.querySelector('.account-section');
+    if (accountSection) accountSection.style.display = 'none';
   })();
 
   /* ===== INTRO DISMISS ===== */
