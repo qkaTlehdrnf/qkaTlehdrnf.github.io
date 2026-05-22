@@ -1,0 +1,530 @@
+{
+  "meta": {
+    "title": "모바일 청첩장 (모청) — LLM 작업 가이드",
+    "purpose": "이 문서는 LLM이 이 프로젝트를 수정하거나 유사한 모청을 새로 만들 때 실제로 발생한 실수를 반복하지 않도록 작성됨. 함정(trap) 중심 구성.",
+    "audience": "LLM only (human-readable Markdown 폐기됨, 인간 검수 안 함)",
+    "schema_version": 1,
+    "last_updated": "2026-05-23"
+  },
+  "project": {
+    "structure": {
+      "wedding/index.html": "모든 CSS·JS 인라인. 빌드 없음. 이 파일 하나가 전부.",
+      "wedding/pictures/*.jpg": "원본 고해상도 (수 MB/장)",
+      "wedding/pictures/thumbs/": "520px 썸네일 (30–150 KB/장). 갤러리·히어로 초기 표시용.",
+      "wedding/map.svg": "커스텀 경로 지도",
+      "votes-worker/src/index.js": "Cloudflare Workers 백엔드 (투표 API)"
+    },
+    "external_endpoint": "https://wedding-votes.wonjoong11.workers.dev",
+    "kv_binding": {
+      "name": "VOTES",
+      "namespace_id": "adf1945952914d07a70452426663dcf3"
+    },
+    "deployment": {
+      "frontend": "git push → GitHub Pages 자동 반영",
+      "worker": "cd votes-worker && npx wrangler deploy (별도)"
+    }
+  },
+  "traps": [
+    {
+      "id": "TRAP-1",
+      "title": "GitHub Pages + 기존 React SW → 새 서브경로가 흰 화면",
+      "tags": ["service-worker", "github-pages", "react", "caching"],
+      "when": "index.html(React SPA)이 이미 배포된 GitHub Pages 저장소에 /wedding/ 같은 서브경로를 추가할 때.",
+      "symptoms": [
+        "wedding/index.html이 존재하는데 브라우저에서 흰 화면",
+        "DevTools Network 탭에 React 앱 JS가 로드됨"
+      ],
+      "root_cause": "React CRA가 등록한 Service Worker가 모든 URL을 가로채 캐시된 React 앱 shell을 반환.",
+      "wrong_approach": "service-worker.js 파일을 저장소에서 그냥 삭제. 새 방문자만 해결되고 기존 방문자는 여전히 같은 문제.",
+      "correct_approach": "service-worker.js를 kill-switch로 교체(파일은 남김). 기존 방문자의 SW가 업데이트되면서 캐시 전부 삭제하고 제어권 반환.",
+      "code_examples": [
+        {
+          "lang": "js",
+          "caption": "kill-switch service-worker.js",
+          "code": "self.addEventListener('install', () => self.skipWaiting());\nself.addEventListener('activate', e => {\n  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))));\n  return self.clients.claim();\n});"
+        }
+      ]
+    },
+    {
+      "id": "TRAP-2",
+      "title": "GitHub Pages(HTTPS) ↔ HTTP 백엔드 → 요청이 무음으로 차단됨",
+      "tags": ["mixed-content", "https", "github-pages", "backend"],
+      "symptoms": [
+        "투표 API 호출에 응답 없음",
+        "콘솔에 에러가 없거나 Mixed Content 경고만",
+        "fetch().catch()가 항상 실행됨"
+      ],
+      "root_cause": "GitHub Pages는 HTTPS 전용. HTTPS 페이지에서 HTTP 엔드포인트 호출 시 브라우저가 mixed content 정책으로 요청 차단. 서버까지 도달 안 함.",
+      "wrong_approach": "홈 서버(HTTP)를 백엔드로 사용하고 '나중에 HTTPS 붙이면 됨'으로 미룸. 브라우저 정책이라 우회 불가.",
+      "correct_approach": "백엔드는 처음부터 HTTPS. 본 프로젝트는 Cloudflare Workers(HTTPS 기본). 자체 서버면 Let's Encrypt 선행."
+    },
+    {
+      "id": "TRAP-3",
+      "title": "백엔드 교체 후 데이터가 모두 사라진 것처럼 보임",
+      "tags": ["migration", "kv", "cloudflare", "data-loss"],
+      "symptoms": [
+        "Worker 정상 응답하는데 하트 카운트가 전부 0",
+        "GET /votes → {\"my_votes\":[]}"
+      ],
+      "wrong_diagnosis_order": "Worker 배포·CORS만 확인 → 이상 없다고 나와 원인 못 찾음.",
+      "correct_diagnosis_order": [
+        "curl https://.../votes → 응답 오는지 (Worker 생존 확인)",
+        "curl -X POST .../vote -d '{\"photo\":\"test\",\"action\":\"up\"}' → 저장되는지 (쓰기 확인)",
+        "npx wrangler kv key list --binding VOTES → KV에 실제 키가 있는지 (3번에서 키 없으면 마이그레이션 누락)"
+      ],
+      "root_cause": "Python/SQLite → Cloudflare KV처럼 저장소 교체 시 새 저장소는 빈 상태. 코드 교체해도 데이터는 따라오지 않음.",
+      "correct_approach": "백엔드 교체 전 마이그레이션 스크립트 선작성. 이미 교체했으면 기존 데이터가 보존돼 있을 경우 스크립트로 KV에 밀어넣고, 복구 불가면 새로 시작.",
+      "code_examples": [
+        {
+          "lang": "bash",
+          "caption": "KV 초기화 (새로 시작)",
+          "code": "cd votes-worker\nnpx wrangler kv key list --binding VOTES          # \"votes\", \"ip:xxx.xxx.xxx.xxx\" 등 확인\nnpx wrangler kv key delete --binding VOTES \"votes\"\n# IP 키는 여러 개. 목록에 나온 것 전부 삭제.\nnpx wrangler kv key delete --binding VOTES \"ip:xxx.xxx.xxx.xxx\""
+        }
+      ]
+    },
+    {
+      "id": "TRAP-4",
+      "title": "CORS 설정 — Origin 대소문자 불일치",
+      "tags": ["cors", "github-pages", "case-sensitivity", "origin"],
+      "symptoms": [
+        "curl로는 정상인데 브라우저에서만 API 요청 실패",
+        "DevTools에 CORS 에러"
+      ],
+      "root_cause": "브라우저가 보내는 Origin 헤더는 주소창 URL의 스킴+호스트 그대로. Worker의 ALLOWED_ORIGIN과 대소문자가 한 글자라도 다르면 Access-Control-Allow-Origin이 실제 Origin과 달라져 브라우저가 거부.",
+      "subtle_case": "GitHub Pages는 mixed-case와 lowercase 호스트명을 둘 다 200으로 서빙. qkaTlehdrnf.github.io와 qkatlehdrnf.github.io 둘 다 redirect 없이 정상 응답. 모바일·iOS·일부 메신저는 hostname을 lowercase로 정규화. ALLOWED_ORIGIN이 mixed-case면 lowercase Origin 사용자의 preflight 거부 → KV에 사용자 투표 0건. 본인 mixed-case URL 접속 시 정상이라 발견 어려움.",
+      "wrong_approach_example": "const ALLOWED_ORIGIN = 'https://qkatlehdrnf.github.io';  // 소문자로 잘못 씀, 실제 URL은 qkaTlehdrnf",
+      "correct_approach": "비교는 lowercase로. 응답 ACAO는 요청 Origin 그대로 돌려줌(대소문자 보존).",
+      "code_examples": [
+        {
+          "lang": "js",
+          "caption": "lowercase 비교 + Origin 보존 응답",
+          "code": "const ALLOWED_ORIGIN = 'https://qkaTlehdrnf.github.io';\nconst ALLOWED_ORIGIN_LC = ALLOWED_ORIGIN.toLowerCase();\nconst lc = (origin || '').toLowerCase();\nconst ok = lc === ALLOWED_ORIGIN_LC || lc.startsWith('http://localhost');\n// 응답 ACAO는 요청 Origin을 그대로 돌려줘야 함 (대소문자 보존)\n'Access-Control-Allow-Origin': ok ? origin : ALLOWED_ORIGIN,"
+        },
+        {
+          "lang": "bash",
+          "caption": "양쪽 Origin 검증",
+          "code": "# GitHub Pages가 두 URL 다 200을 주는지 확인\ncurl -sI https://qkaTlehdrnf.github.io/wedding/ | head -1\ncurl -sI https://qkatlehdrnf.github.io/wedding/ | head -1\n\n# 양쪽 Origin으로 CORS 헤더가 요청 Origin과 정확히 일치하는지 확인\nfor o in \"https://qkaTlehdrnf.github.io\" \"https://qkatlehdrnf.github.io\"; do\n  echo \"== $o ==\"\n  curl -sv https://wedding-votes.wonjoong11.workers.dev/votes \\\n    -H \"Origin: $o\" 2>&1 | grep -i \"access-control-allow-origin\"\ndone"
+        }
+      ],
+      "verification": "응답의 Access-Control-Allow-Origin 값이 요청한 Origin과 글자 그대로 일치해야 함. 한 쪽만 일치하면 lowercase URL 접속 사용자 전원 차단."
+    },
+    {
+      "id": "TRAP-5",
+      "title": "원본 사진을 갤러리에 직접 쓰면 로딩이 수십 초",
+      "tags": ["images", "performance", "thumbnails", "loading"],
+      "symptoms": [
+        "갤러리 스크롤 버벅임",
+        "사진이 오래 안 뜸",
+        "페이지 초기 로드 느림"
+      ],
+      "root_cause": "원본 사진 한 장이 수 MB. 81장이면 수백 MB를 브라우저가 받아야 함.",
+      "correct_approach": "썸네일(520px, 30–150 KB)과 원본을 분리해서 각 용도에 맞게 사용.",
+      "usage_matrix": [
+        {"location": "갤러리 카드", "image": "thumbs/ 썸네일", "reason": "화면에 작게 표시되므로 원본 불필요"},
+        {"location": "히어로 첫 장", "image": "thumbs/ 썸네일 즉시 → 원본으로 교체", "reason": "첫 인상이 중요, 지연 없이 뭔가 보여야 함"},
+        {"location": "히어로 이후", "image": "원본 (onload 후 전환)", "reason": "이미 화면에 뭔가 있으므로 기다려도 됨"},
+        {"location": "라이트박스", "image": "thumbs/ 즉시 → 원본 교체", "reason": "열리는 순간 썸네일 표시, 원본 로드되면 swap"},
+        {"location": "백그라운드 프리패치", "image": "원본", "reason": "페이지 로드 후 순차적으로 캐시에 올림"}
+      ],
+      "code_examples": [
+        {
+          "lang": "bash",
+          "caption": "썸네일 생성 (ImageMagick)",
+          "code": "mogrify -path wedding/pictures/thumbs -resize 520x wedding/pictures/*.jpg"
+        },
+        {
+          "lang": "js",
+          "caption": "히어로 첫 장 즉시 표시 패턴",
+          "code": "// 썸네일로 즉시 표시하고, 원본은 로드되면 같은 슬라이드에 조용히 교체\nslides[next].src = `./pictures/thumbs/${name}`;\nslides[next].classList.add('active');\ncurrent = next;\nconst hi = new Image();\nhi.onload = () => { slides[current].src = hi.src; };\nhi.src = `./pictures/${name}`;"
+        }
+      ]
+    },
+    {
+      "id": "TRAP-6",
+      "title": "이미지 병렬 프리패치 → 모바일 네트워크 포화",
+      "tags": ["prefetch", "mobile", "bandwidth", "lightbox"],
+      "symptoms": [
+        "갤러리 스크롤은 빠른데 라이트박스 원본 로드 느림",
+        "모바일에서 더 심함"
+      ],
+      "root_cause": "PHOTOS.forEach(name => new Image().src = ...) 처럼 전체 동시 프리패치하면 모바일 제한된 대역폭을 다 잡아먹어 실제 사용 요청(라이트박스 원본)이 대기.",
+      "correct_approach": "한 장씩 순차 프리패치. prefetchActive 플래그로 동시 요청 1개로 제한. 사용자가 호버/터치한 카드는 prefetchQueue 맨 앞으로 이동시켜 우선 캐시.",
+      "code_examples": [
+        {
+          "lang": "js",
+          "caption": "순차 프리패치 + 활성 플래그",
+          "code": "let prefetchActive = false;\nfunction doPrefetch() {\n  if (prefetchActive || prefetchQueue.length === 0) return;\n  prefetchActive = true;\n  const name = prefetchQueue.shift();\n  const hi = new Image();\n  hi.onload = hi.onerror = () => { prefetchActive = false; doPrefetch(); };\n  hi.src = `./pictures/${name}`;\n}"
+        }
+      ]
+    },
+    {
+      "id": "TRAP-7",
+      "title": "갤러리 셔플을 renderGallery() 안에서 매번 실행",
+      "tags": ["gallery", "shuffle", "state", "rendering"],
+      "symptoms": [
+        "추천순↔랜덤 토글 시마다 랜덤 순서가 새로 바뀜",
+        "사용자가 기억하는 위치의 사진이 계속 달라짐"
+      ],
+      "root_cause": "renderGallery() 안에서 [...PHOTOS].sort(() => Math.random() - 0.5) 실행하면 호출마다 다른 순서.",
+      "correct_approach": "모듈 스코프(최상단)에서 한 번만 계산해 SHUFFLED 상수에 저장. 히어로 슬라이드쇼와 갤러리가 같은 배열 공유.",
+      "code_examples": [
+        {
+          "lang": "js",
+          "caption": "모듈 스코프 1회 셔플",
+          "code": "// 스크립트 최상단 — 페이지 로드 시 한 번만 실행\nconst SHUFFLED = [...PHOTOS].sort(() => Math.random() - 0.5);"
+        }
+      ]
+    },
+    {
+      "id": "TRAP-8",
+      "title": "라이트박스 prev/next 탐색 시 정렬 상태 무시",
+      "tags": ["lightbox", "sort", "navigation"],
+      "symptoms": [
+        "추천순 정렬 상태에서 라이트박스를 열고 다음으로 넘기면 추천순이 아닌 엉뚱한 사진"
+      ],
+      "root_cause": "currentLightboxIndex를 PHOTOS 또는 SHUFFLED 고정 배열 기준으로 계산하면 현재 갤러리 표시 순서와 다름.",
+      "correct_approach": "탐색할 때마다 현재 정렬 상태를 반영하는 getDisplayOrder()를 호출해 배열을 가져옴.",
+      "code_examples": [
+        {
+          "lang": "js",
+          "caption": "현재 정렬 상태 반영 탐색",
+          "code": "function getDisplayOrder() {\n  return sortByHearts\n    ? [...PHOTOS].sort((a, b) => (heartCounts[b] || 0) - (heartCounts[a] || 0))\n    : SHUFFLED;\n}\nfunction navigateLightbox(dir) {\n  const order = getDisplayOrder();\n  currentLightboxIndex = (currentLightboxIndex + dir + order.length) % order.length;\n  _loadLightboxPhoto(order[currentLightboxIndex], order.length);\n}"
+        }
+      ]
+    },
+    {
+      "id": "TRAP-9",
+      "title": "터치 스와이프 구현 시 기존 클릭 핸들러 충돌",
+      "tags": ["touch", "swipe", "lightbox", "events"],
+      "symptoms": [
+        "라이트박스 스와이프 시 사진은 넘어가는데 동시에 라이트박스가 닫힘"
+      ],
+      "root_cause": "라이트박스 배경에 onclick=\"closeLightbox()\"가 있는데, 스와이프 직후 브라우저가 touchend→click 이벤트를 순서대로 발생시킴.",
+      "wrong_approach": "touchend에서 event.preventDefault() 호출. passive: true 기본값과 충돌해 에러.",
+      "correct_approach": "스와이프 발생(deltaX > 50px) 시에만 navigateLightbox() 호출. 스와이프 거리가 충분히 크면 브라우저가 click 이벤트를 발생시키지 않음(이미 드래그로 처리).",
+      "code_examples": [
+        {
+          "lang": "js",
+          "caption": "거리 기반 스와이프 + 짧은 탭은 클릭 통과",
+          "code": "lb.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });\nlb.addEventListener('touchend', e => {\n  const dx = e.changedTouches[0].clientX - startX;\n  if (Math.abs(dx) > 50) navigateLightbox(dx < 0 ? 1 : -1);\n  // 50px 미만은 탭 → 기존 onclick=\"closeLightbox()\" 그대로 동작\n});"
+        }
+      ]
+    },
+    {
+      "id": "TRAP-10",
+      "title": "투표가 안 되는 것처럼 보이지만 실제로는 세 가지 다른 원인",
+      "tags": ["voting", "debugging", "diagnosis", "multi-cause"],
+      "symptoms": [
+        "하트를 눌렀는데 새로고침하면 카운트가 0",
+        "하트가 이미 눌린 것처럼 표시되는데 투표한 기억 없음"
+      ],
+      "principle": "이 증상에는 원인이 세 가지 있으며, 겉으로 보이는 현상이 동일하기 때문에 반드시 순서대로 진단해야 함.",
+      "causes": [
+        {
+          "id": "A",
+          "label": "HTTP 백엔드 + HTTPS 페이지 → mixed content 블록 (가장 위험)",
+          "detail": "GitHub Pages는 HTTPS. 백엔드가 HTTP면 브라우저가 fetch 자체를 차단. catch(() => {})가 에러를 삼키고 낙관적 UI 때문에 사용자는 투표된 것처럼 느낌. 새로고침하면 카운트 0. Cloudflare 이전 전 Python HTTP 서버 시절 실제 발생. 투표가 한 번도 저장된 적 없었지만 UI는 저장된 것처럼 보였음."
+        },
+        {
+          "id": "B",
+          "label": "백엔드 교체 후 데이터 마이그레이션 누락",
+          "see_also": "TRAP-3"
+        },
+        {
+          "id": "C",
+          "label": "진단 과정에서 만든 테스트 데이터가 사용자 IP와 충돌",
+          "detail": "curl로 테스트 투표 시 Worker는 CF-Connecting-IP(서버 공인 IP)를 소유 IP로 저장. 같은 기기/공인 IP에서 브라우저 접속 시 같은 IP로 인식 → GET /votes 응답 my_votes에 테스트 사진 포함 → 프론트가 '이미 투표함' 표시 → 사용자 투표 막힘. curl 테스트와 브라우저 접속이 같은 공인 IP면 테스트 투표가 실제 사용자 경험을 오염시킴."
+        }
+      ],
+      "correct_diagnosis_order": [
+        "DevTools Network 탭으로 직접 확인 (curl은 CORS/mixed content 우회하므로 curl 동작해도 브라우저 실패 가능)",
+        "Network 탭 /votes 요청: 요청 자체 없음 → JS 오류 / 실패(CORS·mixed) → 원인 A / my_votes에 이미 있음 → 원인 C / votes 비어있음 → 원인 B",
+        "Network 탭 /vote POST(하트 클릭 후): 요청 없음 → castHeart() 미호출(myVotedPhotos.has() 조기 반환 의심) / 실패 → mixed·CORS / 200인데 새로고침 후 없음 → KV 최종 일관성 지연(~60초)"
+      ],
+      "code_examples": [
+        {
+          "lang": "bash",
+          "caption": "테스트 후 KV 정리 필수",
+          "code": "cd votes-worker\nnpx wrangler kv key list --binding VOTES     # 테스트로 생긴 ip: 키 확인\nnpx wrangler kv key delete --binding VOTES \"votes\"\nnpx wrangler kv key delete --binding VOTES \"ip:테스트에_사용한_IP\""
+        }
+      ],
+      "silent_catch_warning": "catch(() => {}) 패턴은 API 오류를 완전히 숨김. 낙관적 UI와 결합하면 서버 저장 실패해도 사용자는 됐다고 느낌. 디버깅 시 반드시 Network 탭 확인. 프로덕션 코드에서도 최소 console.warn은 남길 것."
+    },
+    {
+      "id": "TRAP-11",
+      "title": "'CORS로 API를 보호했다' → 실제로는 비브라우저 클라이언트에 완전히 열려있음",
+      "tags": ["security", "cors", "api", "abuse"],
+      "attack_matrix": [
+        {"attack": "CF-Connecting-IP 헤더를 요청에 직접 설정해 IP 위조", "possible": false, "reason": "Cloudflare 엣지가 클라이언트 설정값을 무시하고 실제 TCP 연결 IP로 덮어씀 (error 1000 반환)"},
+        {"attack": "curl·스크립트로 Origin 헤더 없이 POST /vote 직접 호출", "possible": true, "reason": "CORS는 브라우저 전용 정책. 비브라우저 클라이언트는 적용 안 받음"},
+        {"attack": "VPN·프록시로 IP를 바꿔가며 같은 사진에 여러 번 투표", "possible": true, "reason": "IP 중복 방지는 고정 IP 기준. 다른 IP면 별개의 투표로 처리됨"},
+        {"attack": "GET /votes로 누가 어떤 사진에 투표했는지 추적", "possible": true, "reason": "my_votes 응답이 IP별 투표 목록 반환. IP는 노출 안 되지만 패턴 분석 가능"}
+      ],
+      "why_cors_is_not_server_security": "CORS는 브라우저가 스크립트의 cross-origin 응답 읽기를 차단하는 정책. 서버는 OPTIONS preflight 응답만 할 뿐, 실제 요청을 거부하는 게 아님. 현재 Worker의 CORS 검사는 Access-Control-Allow-Origin 값을 결정할 뿐 요청을 막지 않음.",
+      "this_project_risk_level": "결혼 사진 인기투표는 금전·개인정보 피해 없음. 최악은 누군가 특정 사진의 하트를 인위적으로 올리는 정도. 결혼식 하객 대상이라 외부 공격자가 URL 알 가능성도 낮음. 현재 구조로 충분함.",
+      "code_examples": [
+        {
+          "lang": "bash",
+          "caption": "비브라우저 직접 호출 — 정상 저장됨",
+          "code": "curl -X POST https://wedding-votes.wonjoong11.workers.dev/vote \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"photo\":\"01_SIN00008-1.jpg\",\"action\":\"up\"}'\n# → {\"up\":1,\"already_voted\":false}  ← 정상 저장됨"
+        },
+        {
+          "lang": "js",
+          "caption": "더 민감한 서비스라면 추가 방어 옵션",
+          "code": "// 방어 옵션 1: Cloudflare Turnstile (무료 CAPTCHA)\n// 방어 옵션 2: 요청 rate limit — KV에 IP별 분당 횟수 저장\n// 방어 옵션 3: Worker에서 Origin 헤더 없으면 요청 거부\nif (!origin || origin !== ALLOWED_ORIGIN) {\n  return new Response('Forbidden', { status: 403, headers });\n}\n// → 비브라우저 직접 호출 차단. 단, VPN 우회는 여전히 가능."
+        }
+      ]
+    },
+    {
+      "id": "TRAP-12",
+      "title": "프롬프트 기반 편집(Qwen 등)에서 변형 범위를 제한하지 않음 → 원본과 전혀 다른 사진",
+      "tags": ["ai", "image-editing", "diffusion", "prompts"],
+      "when": "Qwen-Image-Edit, InstructPix2Pix 등 diffusion 기반 이미지 편집 모델에 편집 목표만 써서 프롬프트 구성할 때.",
+      "symptoms": [
+        "피부가 매끄럽게 바뀜",
+        "머리카락 가닥이 뭉침",
+        "옷 주름·디테일 단순화",
+        "색감·화이트밸런스 임의 조정",
+        "전체적으로 결혼사진답지 않은 분위기로 변형"
+      ],
+      "root_cause": "diffusion 모델은 '편집 지시 + 이미지 가이던스'를 동시에 받음. 편집 지시만 주고 보존 지시를 생략하면 모델이 자기 판단으로 '더 좋아 보이게' 전체를 손댐. 기본 성향이 이미지 재생성 방향.",
+      "wrong_approach_example": "prompt = 'make the skin look smoother and improve lighting' — 요청 범위 미명시로 모델이 편집 범위 스스로 결정.",
+      "correct_approach": "편집 지시는 가능한 한 하나만(one change only). 나머지는 전부 '건드리지 말 것'으로 열거. 보존 목록에 반드시 포함: (1) 옷·드레스 스타일·네크라인·원단 질감·주름·장신구, (2) 머리카락 개별 가닥·잔머리·윤기.",
+      "code_examples": [
+        {
+          "lang": "python",
+          "caption": "보존 목록 프롬프트 (필수 항목 명시)",
+          "code": "_PRESERVE = (\n    \"Do NOT touch or alter the following — they must be pixel-perfect identical to the original: \"\n    \"every individual hair strand and flyaway (do not merge, clump, or redraw hair), \"\n    \"all eye details including iris color, pupil, and gaze direction, \"\n    \"all facial features and facial expression, \"\n    \"all skin tone, skin color, and skin texture (do not smooth, brighten, or recolor skin), \"\n    \"body pose and posture, \"\n    \"all background elements, textures, and fine details, \"\n    \"color grading, white balance, lighting mood, and color temperature. \"\n)"
+        },
+        {
+          "lang": "python",
+          "caption": "negative prompt 대응",
+          "code": "NEGATIVE = (\n    \"clumped hair, merged hair, redrawn hair, simplified hair, \"\n    \"changed dress style, changed neckline, changed clothing fabric, \"\n    \"plastic skin, smoothed skin, brightened skin, airbrushed skin, \"\n    \"changed white balance, altered color grading, color shift, \"\n    \"changed face identity, changed expression, altered eye color\"\n)"
+        }
+      ],
+      "tuning_values_2026_05": {
+        "model": "Qwen-Image-Edit-2511",
+        "true_cfg_scale": "2.5(자연스러운 편집) ~ 3.0(실루엣 보정 등 강한 편집). 3.5 이상이면 변형이 눈에 띔.",
+        "gfpgan_weight": "0.5가 기준. 1.0은 얼굴이 인형처럼. 0.3 아래는 효과 없음.",
+        "preview": "결과물은 반드시 --sample 5로 5장 먼저 확인 후 전체 처리."
+      }
+    },
+    {
+      "id": "TRAP-13",
+      "title": "오픈소스 초해상도(upscaling)로 고화질 변환 시도 → 어색한 결과",
+      "tags": ["ai", "upscaling", "image-quality", "realesrgan", "codeformer"],
+      "status_as_of": "2026-05",
+      "context": "RealESRGAN, ESRGAN, CodeFormer 등 오픈소스 upscaling 모델로 결혼사진을 고해상도 변환하면 특히 얼굴과 배경 경계에서 AI 특유의 부자연스러움 발생.",
+      "symptoms": [
+        "얼굴: 모공·주름 사라지고 과도하게 매끈해짐 (wax/plastic 느낌)",
+        "배경: 아웃포커스 영역이 반복적인 텍스처로 재생성",
+        "머리카락: 개별 가닥이 뭉쳐 덩어리로 처리",
+        "색감: 채도가 임의로 올라가거나 색온도가 바뀜"
+      ],
+      "wrong_approach": "원본 사진에 upscaler 직접 적용해 '고화질 버전'을 만들고 결혼사진 최종본으로 사용.",
+      "correct_approach": [
+        "원본 파일을 그대로 보존하고 upscaling은 별도 비교용으로만 생성.",
+        "업스케일이 필요한 경우 모델 적용 후 원본과 50% 블렌딩해서 AI 느낌 감소.",
+        "얼굴 복원은 GFPGAN weight=0.5 수준으로 제한(얼굴 영역에만 영향, 배경·옷 비손상).",
+        "전체 화질 향상보다 특정 결함(노이즈, 흔들림) 부분 보정이 현실적."
+      ],
+      "reevaluation_note": "모델 발전 속도가 빠르므로 2026년 하반기 이후 재평가 필요."
+    },
+    {
+      "id": "TRAP-14",
+      "title": "청첩장 다국어 번역을 Claude가 직접 작성",
+      "tags": ["i18n", "translation", "claude-scope", "policy"],
+      "when": "청첩장 본문을 어떤 외국어로든 번역할 때. 현재 도입된 중국어(I18N_ZH)뿐 아니라 영어·일본어·베트남어·러시아어 등 모든 언어 동일 적용.",
+      "symptoms_by_language": {
+        "common": "결혼 청첩장 특유의 격식·정중함이 직역 톤으로 무너짐. 모범 답안처럼 보이지만 원어민이 보면 어색한 구절이 검수 없이 통과.",
+        "zh": "한자가 일본식(婚禮會場)·번체(會場)·간체가 뒤섞임. 인명 한자가 의도와 다름(예: 붉을 홍 红 → 큰물 홍 洪). 직역체(心意传达) 그대로.",
+        "en": "'We cordially invite you...' 미국식 정형 문구로 단조롭게. 한국 청첩장 톤(부모 호명, 인생의 첫걸음 메타포) 사라짐. 신랑/신부 한글 이름의 로마자 표기(Wonjoong vs Won-jung vs Won Joong)가 사용자 평소 표기와 다름.",
+        "ja": "결혼식 청첩장 정형 표현(ご多用中恐縮ですが 등) 미사용. 한자 이름 음독/훈독 임의 선택.",
+        "others": "신랑·신부 현지 표기, 격식 단계(존댓말 레지스터), 종교 표현 사용 여부 등은 Claude가 판단할 근거 없음."
+      },
+      "wrong_approach": "사용자가 'X 언어로 번역해줘'라고 했을 때 Claude가 곧장 모든 키를 채워서 커밋. 외국어 검수 어려움 + 인명·지명·격식 오류 그대로 배포·공유. 인쇄·카톡 공유 후 정정 사실상 불가.",
+      "correct_approach": [
+        "Claude는 번역이 필요한 한국어 원문을 i18n 키별로 정리해서 사용자에게 제시(<br>, <strong> 같은 HTML 태그와 보존할 고유명사 명시).",
+        "사용자가 OpenAI(ChatGPT)·DeepL·Google 번역·전문 번역 서비스 또는 원어민에게 맡겨 번역문을 받아옴.",
+        "Claude는 받아온 번역문을 해당 i18n 객체(I18N_ZH, I18N_EN, I18N_JA ...)에 그대로 반영. 임의로 다듬지 않음.",
+        "인명 한자·로마자 표기·예식 격식체처럼 사용자만 알 수 있는 항목은 반드시 사용자 확인.",
+        "새 언어 추가 시 LANG 감지 로직(navigator.languages 매칭)에 해당 언어 코드 추가까지가 Claude의 작업 범위."
+      ],
+      "rationale": "이 청첩장은 결혼 당사자 가족이 실제로 받는 정식 초대장이며 외국 친지·동료에게 공유됨. Claude 번역 품질은 일반 텍스트로는 충분하지만 인명/예식 격식체/지역명/종교 표현에서 미세 오역 발생 시 인쇄·공유 후 정정 어려움. 번역 단계는 Claude 책임 범위 밖에 두고 원문 추출과 코드 반영 단계만 담당.",
+      "precedents": [
+        "2026-05: 중국어 초기 번역(I18N_ZH) 시 신부 이름 「홍우」를 红雨(붉을 홍)가 아닌 洪雨(큰물 홍)로 잘못 표기. 사용자 검수에서 발견해 수정. 이 항목 작성의 직접 계기."
+      ]
+    },
+    {
+      "id": "TRAP-15",
+      "title": "인트로 영상·갤러리 자산을 한 모델로 끝까지 만들려고 함",
+      "tags": ["video", "ai-pipeline", "compression", "assets", "openai", "dreamina"],
+      "when": "인트로 동영상, 캐리커처 애니메이션, 갤러리 보조 자산처럼 청첩장에 들어가는 영상·이미지를 새로 만들 때.",
+      "symptoms": [
+        "영상 생성 모델 하나(Sora, Dreamina, Veo)에 텍스트 프롬프트만 던져 처음부터 영상을 뽑으려 함 → 구도·캐릭터·신랑신부 외형 의도와 어긋남. 재생성마다 인물 달라져 일관성 깨짐.",
+        "이미지 모델 하나로 끝내려 함 → 정지 이미지지만 청첩장 인트로로 쓰기엔 움직임 없어 밋밋."
+      ],
+      "wrong_approach": [
+        "'결혼식 인트로 영상 만들어줘' 한 줄로 영상 모델에 맡김.",
+        "raw 결과물을 압축 없이 그대로 wedding/에 커밋해 git push로 배포(모바일 LTE 첫 로딩 수~십수 초)."
+      ],
+      "correct_pipeline_2026_05": [
+        {
+          "step": 1,
+          "tool": "OpenAI (ChatGPT/DALL·E 또는 GPT-4o 이미지)",
+          "purpose": "키 프레임 한두 장을 먼저 만들어 신랑·신부 캐릭터·배경·구도·분위기를 정지 이미지로 확정. 프롬프트 반복 비용이 영상보다 훨씬 싸고 결과를 한눈에 검수 가능."
+        },
+        {
+          "step": 2,
+          "tool": "ByteDance Dreamina (또는 동급 image-to-video 모델)",
+          "purpose": "1단계 이미지를 입력으로 넣어 영상 생성. 캐릭터·구도가 그대로 유지되며 모션만 추가되므로 일관성 보장. 텍스트만으로 영상 뽑는 것보다 의도 충족률 훨씬 높음."
+        },
+        {
+          "step": 3,
+          "tool": "ffmpeg 압축",
+          "purpose": "raw 출력을 반드시 압축한 뒤 배포 디렉터리에 둠."
+        }
+      ],
+      "compression_measurements_2026_05": {
+        "dreamina_raw_1080p": "3~4 MB / 수 초 영상",
+        "deployed_compressed": "동일 영상 250~330 KB (실측: wedding/intro.mp4 332 KB, wedding/intro-tensorflow.mp4 256 KB)",
+        "ratio": "약 10배 축소",
+        "importance": "첫 페인트 직전 자동재생되는 자산이므로 이 압축이 LTE 첫인상 체감을 좌우",
+        "raw_storage": "raw 파일은 저장소 루트(./dreamina-*.mp4)에 보관해 추적은 하되 배포 경로(wedding/)에는 압축본만"
+      },
+      "code_examples": [
+        {
+          "lang": "bash",
+          "caption": "권장 ffmpeg 압축 명령",
+          "code": "ffmpeg -i raw.mp4 -vcodec libx264 -crf 28 -preset slow \\\n       -vf \"scale=720:-2\" -an -movflags +faststart intro.mp4\n# 오디오 제거 -an, 모바일 스트리밍용 +faststart, 짧은 인트로면 crf 26~30"
+        }
+      ],
+      "photo_same_principle": [
+        "원본 결혼사진은 수 MB(JPG 3~8 MB). 그대로 갤러리 쓰면 모바일 첫 로딩 처참 (TRAP-5 참고).",
+        "썸네일은 mogrify -resize 520x로 30~150 KB까지 줄이고 원본은 라이트박스 진입 시 swap.",
+        "AI 보정·변환 결과물(GFPGAN 등)도 배포 전 같은 압축 절차. raw quality는 검수용으로만 보관."
+      ],
+      "rationale": "인트로 영상은 페이지를 열자마자 자동재생되므로 로딩 지연 = 첫인상 망가짐. 자산 생성과 압축은 별개 작업이며 어느 한쪽만 잘해도 결과가 무너짐. OpenAI(이미지) → Dreamina(image-to-video) 분할 파이프라인은 일관성·비용 양쪽에서 단일 모델 접근보다 안정적임이 2026-05 실작업에서 확인."
+    },
+    {
+      "id": "TRAP-16",
+      "title": "썸네일·사진 로딩 패턴 — TRAP-5/6 이후의 디테일",
+      "tags": ["images", "performance", "lazy-loading", "intersection-observer", "mobile"],
+      "premise": "TRAP-5(썸네일/원본 분리)와 TRAP-6(순차 프리패치) 위에 쌓아야 첫인상이 매끄러워지는 세부 패턴. 하나만 빠져도 체감 즉시 떨어짐.",
+      "patterns": [
+        {
+          "n": 1,
+          "title": "첫 화면(above-the-fold) 썸네일은 lazy 금지",
+          "detail": "갤러리 첫 3장은 IntersectionObserver로 lazy 로딩 말고 <img src=\"...\">로 즉시 박음. lazy 처리하면 페이지 진입 직후 빈 칸 깜빡임 발생.",
+          "code": {
+            "lang": "js",
+            "code": "order.forEach((name, i) => {\n  const img = document.createElement('img');\n  if (i < 3) {\n    img.src = `./pictures/thumbs/${name}`;        // 즉시 로드\n  } else {\n    img.dataset.src = `./pictures/thumbs/${name}`; // lazy\n  }\n  // ...\n  if (i >= 3) galleryObserver.observe(div);\n});"
+          }
+        },
+        {
+          "n": 2,
+          "title": "IntersectionObserver의 rootMargin은 스크롤 방향에 맞춰서",
+          "detail": "가로 스크롤 갤러리에서 기본 rootMargin: '0px' 쓰면 카드 화면 진입 후 로드 시작 → 빈 카드 노출. 스크롤 방향(가로면 right)으로 400px 정도 미리 트리거. 세로 스크롤이면 '400px 0px 0px 0px'. 방향 잘못 쓰면 효과 0.",
+          "code": {
+            "lang": "js",
+            "code": "{ rootMargin: '0px 400px 0px 0px', threshold: 0 }"
+          }
+        },
+        {
+          "n": 3,
+          "title": "호버·터치 시 프리패치 우선순위 끌어올리기",
+          "detail": "TRAP-6 순차 프리패치는 안전하지만 느림. 사용자가 카드에 마우스 올리거나 손가락 댄 순간 = 곧 열 가능성 높다는 신호. 그 카드를 큐 맨 앞으로. touchstart에는 반드시 { passive: true } — 아니면 모바일 스크롤 성능 저하.",
+          "code": {
+            "lang": "js",
+            "code": "function prioritizePrefetch(name) {\n  if (prefetched.has(name)) return;\n  prefetchQueue = prefetchQueue.filter(n => n !== name);\n  prefetchQueue.unshift(name);\n}\ndiv.addEventListener('mouseenter',  () => prioritizePrefetch(name));\ndiv.addEventListener('touchstart',  () => prioritizePrefetch(name), { passive: true });"
+          }
+        },
+        {
+          "n": 4,
+          "title": "라이트박스는 '썸네일 먼저, 원본 swap' 패턴",
+          "detail": "라이트박스 열면 즉시 뭔가 보여야 함. 원본 기다리면 검은 화면. 썸네일 먼저 띄우고 원본 로드되면 같은 <img>의 src만 교체. currentLightboxName === name 가드 중요 — 사용자가 prev/next로 빠르게 넘기면 늦게 도착한 onload가 다른 사진 덮어쓰는 race 발생.",
+          "code": {
+            "lang": "js",
+            "code": "lbImg.src = `./pictures/thumbs/${name}`;   // 즉시 표시 (블러 느낌)\nif (prefetched.has(name)) {\n  lbImg.src = `./pictures/${name}`;         // 이미 캐시되어 있으면 바로 교체\n} else {\n  const hi = new Image();\n  hi.onload = () => { if (currentLightboxName === name) lbImg.src = hi.src; };\n  hi.src = `./pictures/${name}`;\n}"
+          }
+        },
+        {
+          "n": 5,
+          "title": "히어로 슬라이드쇼는 두 슬라이드 교차 + 사전 디코딩",
+          "detail": "히어로 한 장에 직접 src 바꾸면 로드 중 빈 화면. 슬라이드 2장(hero-slide-a, hero-slide-b)을 만들어 다음 사진은 숨겨진 슬라이드에 미리 로드한 뒤 onload에서 active 토글. 첫 장만 예외 — 썸네일 즉시 표시 후 원본 swap (TRAP-5 참고).",
+          "code": {
+            "lang": "js",
+            "code": "const img = new Image();\nimg.onload = () => {\n  slides[next].src = img.src;\n  slides[next].classList.add('active');\n  slides[current].classList.remove('active');\n  current = next;\n};\nimg.src = `./pictures/${name}`;"
+          }
+        },
+        {
+          "n": 6,
+          "title": "썸네일 사이즈는 실제 표시 폭 × DPR",
+          "detail": "썸네일 폭을 화면 표시 크기와 동일하게 만들면 고DPR(레티나) 기기에서 흐릿. 표시 폭 ~260px × 2배 DPR = 520px가 실측 기준 최적. 더 키우면 용량만 늘고 시각적 이득 없음. -quality 82는 JPG 체감 한계점 — 80 미만은 얼굴 피부톤 밴딩, 85 이상은 용량만 증가.",
+          "code": {
+            "lang": "bash",
+            "code": "mogrify -path wedding/pictures/thumbs -resize 520x -quality 82 wedding/pictures/*.jpg"
+          }
+        },
+        {
+          "n": 7,
+          "title": "사진 파일 포맷·옵션 체크리스트",
+          "items": [
+            "갤러리 원본: progressive JPG. baseline JPG는 위에서 아래로 그려져 어색. progressive면 흐릿한 전체가 먼저 떠 점점 선명해짐. 변환: mogrify -interlace Plane wedding/pictures/*.jpg",
+            "WebP/AVIF는 현재 미도입. 청첩장 수명(수개월)과 iOS 구버전 호환 감안하면 progressive JPG가 트레이드오프상 안전.",
+            "원본 JPG는 1600~2000px 폭이면 충분. 그 이상은 라이트박스에서도 차이 없고 LTE 로딩만 길어짐.",
+            "AI 보정본(GFPGAN 등) 출력 PNG는 반드시 JPG로 재인코딩. PNG는 사진에서 용량 3~5배."
+          ]
+        },
+        {
+          "n": 8,
+          "title": "loading=\"lazy\" 속성은 보조용",
+          "detail": "브라우저 네이티브 <img loading=\"lazy\">는 우리가 짠 IntersectionObserver 로직과 겹침. 갤러리에는 쓰지 말고 푸터·계좌 섹션의 정적 이미지(예: 보타닉파크웨딩홀_오는길.jpeg)에만 보조로 붙이는 정도가 적절."
+        }
+      ],
+      "rationale": "이 청첩장은 81장의 결혼사진을 다룸. 모바일 LTE에서 첫 진입 ~3초 안에 히어로 + 갤러리 첫 줄이 떠야 이탈하지 않음. 단순히 썸네일을 만드는 것만으론 부족하고 언제·어디서·어떤 우선순위로 로드하느냐가 체감을 좌우. 위 8개 항목은 2026-05 실측 기준 모두 효과 검증됨."
+    }
+  ],
+  "current_features": {
+    "as_of": "2026-05-05",
+    "items": [
+      {"section": "인트로", "implementation": "꽃잎 캔버스 (requestAnimationFrame), 클릭 해제"},
+      {"section": "히어로", "implementation": "슬라이드 2장 교대, 5초 크로스페이드, 첫 장은 썸네일 즉시"},
+      {"section": "D-day", "implementation": "setInterval(1000), WEDDING = new Date('2026-08-17T11:00:00')"},
+      {"section": "갤러리", "implementation": "썸네일 레이지 로딩 (IntersectionObserver), 원본 순차 프리패치"},
+      {"section": "라이트박스", "implementation": "prev/next 버튼·키보드·스와이프, 사진 카운터, 썸네일→원본 swap"},
+      {"section": "하트 투표", "implementation": "Cloudflare Workers KV, IP 중복 방지, 낙관적 UI"},
+      {"section": "지도", "implementation": "map.svg + 카카오맵·네이버지도 외부 링크"},
+      {"section": "계좌", "implementation": "아코디언, navigator.clipboard + execCommand fallback"},
+      {"section": "공유 FAB", "implementation": "navigator.share (모바일) + 클립보드 링크 복사 (데스크톱)"}
+    ],
+    "note": "인트로 영상 도입(intro.mp4 + Chinese-locale 우회 분기)·중국어 i18n 추가 이후 일부 항목은 outdated 가능. 본 features 섹션은 코드와 직접 대조 후 갱신 필요."
+  },
+  "common_tasks": [
+    {
+      "task": "사진 추가",
+      "steps": [
+        "wedding/pictures/에 JPG 복사",
+        "mogrify -path wedding/pictures/thumbs -resize 520x wedding/pictures/새파일.jpg",
+        "wedding/index.html의 PHOTOS 배열에 파일명 추가"
+      ]
+    },
+    {
+      "task": "Worker 배포",
+      "command": "cd votes-worker && npx wrangler deploy"
+    },
+    {
+      "task": "KV 초기화",
+      "commands": [
+        "cd votes-worker",
+        "npx wrangler kv key list --binding VOTES",
+        "npx wrangler kv key delete --binding VOTES \"votes\"",
+        "npx wrangler kv key delete --binding VOTES \"ip:xxx.xxx.xxx.xxx\"  # 목록에 있는 IP 키 전부"
+      ]
+    },
+    {
+      "task": "신부측 혼주 이름 입력",
+      "location": "wedding/index.html → invitation-family 섹션, 두 번째 family-line의 &nbsp; 부분 교체"
+    }
+  ]
+}
