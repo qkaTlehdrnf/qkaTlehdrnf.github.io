@@ -109,6 +109,37 @@
     }
     #intro.flashing .intro-touch { opacity: 0; transition: opacity 0.5s ease; }
 
+    .intro-cal-btn {
+      position: absolute;
+      bottom: 7.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5em;
+      padding: 0.7rem 1.4rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #fff5e6;
+      background: rgba(26,20,16,0.5);
+      border: 1px solid rgba(255,245,230,0.45);
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.5);
+      opacity: 0;
+      animation: fadeInUp 1s ease 1.6s forwards;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .intro-cal-btn:hover, .intro-cal-btn:active {
+      background: rgba(201,185,154,0.28);
+      border-color: rgba(255,245,230,0.7);
+    }
+    #intro.flashing .intro-cal-btn { opacity: 0; transition: opacity 0.5s ease; }
+
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(18px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -748,6 +779,9 @@
   </script>
   <div id="intro-vignette"></div>
   <div id="intro-flash"></div>
+  <button type="button" class="intro-cal-btn"
+          onclick="event.stopPropagation(); downloadWeddingICS();"
+          data-i18n="introCalBtn">📅 일정 추가하기</button>
   <div class="intro-touch" data-i18n="introTouch">화면을 터치해주세요</div>
 </div>
 
@@ -957,6 +991,7 @@
     pageTitle: '金元中 ♥ 高红雨 即将结婚',
     ogDesc: '2026年8月17日 星期一 上午11点 · Botanic Park 婚礼大厅',
     introTouch: '请触摸屏幕',
+    introCalBtn: '📅 添加到日历',
     heroGroomName: '金元中',
     heroBrideName: '高红雨',
     invitationPoem:
@@ -1066,6 +1101,61 @@
     const v = document.getElementById('intro-video');
     if (!v) return;
     v.addEventListener('ended', () => { dismissIntro(); });
+  })();
+
+  /* ===== ADD TO CALENDAR (#calendar deep link) ===== */
+  function buildWeddingICS() {
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//qkaTlehdrnf//wedding//KO',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      'UID:wedding-20260817-110000@qkaTlehdrnf.github.io',
+      'DTSTAMP:20260101T000000Z',
+      // 2026-08-17 11:00 KST = 02:00 UTC, 13:00 KST = 04:00 UTC
+      'DTSTART:20260817T020000Z',
+      'DTEND:20260817T040000Z',
+      'SUMMARY:김원중 ♥ 고홍우 결혼식',
+      'LOCATION:보타닉파크 웨딩홀 (보타닉 푸르지오시티 L층 로비층)',
+      'DESCRIPTION:2026년 8월 17일 (월) 오전 11시\\n청첩장: https://qkaTlehdrnf.github.io/wedding/',
+      'BEGIN:VALARM',
+      'TRIGGER:-P1D',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:내일은 김원중 ♥ 고홍우 결혼식',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+  }
+
+  function downloadWeddingICS() {
+    const blob = new Blob([buildWeddingICS()], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wedding-2026-08-17.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  // When opened via .../wedding#calendar, arm the calendar add on the first
+  // user gesture (browsers block downloads / calendar launch without one —
+  // the intro "화면을 터치해주세요" tap doubles as that gesture).
+  (function () {
+    if (!/(^|[#&])calendar(\b|$)/i.test(location.hash)) return;
+    let fired = false;
+    function fire() {
+      if (fired) return;
+      fired = true;
+      downloadWeddingICS();
+    }
+    ['pointerdown', 'touchend', 'click'].forEach(function (evt) {
+      window.addEventListener(evt, fire, { once: true, passive: true });
+    });
   })();
 
   /* ===== D-DAY COUNTER ===== */
