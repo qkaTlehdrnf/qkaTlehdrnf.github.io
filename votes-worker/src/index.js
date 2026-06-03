@@ -37,7 +37,7 @@ export default {
       let photo, action;
       try {
         ({ photo, action } = await request.json());
-        if (!photo || action !== 'up') throw new Error();
+        if (!photo || (action !== 'up' && action !== 'down')) throw new Error();
       } catch {
         return new Response('Bad Request', { status: 400, headers });
       }
@@ -48,21 +48,29 @@ export default {
         env.VOTES.get(ipKey),
       ]);
       const votes = JSON.parse(votesRaw || '{}');
-      const myVotes = JSON.parse(myVotesRaw || '[]');
+      let myVotes = JSON.parse(myVotesRaw || '[]');
+      const has = myVotes.includes(photo);
 
-      if (myVotes.includes(photo)) {
-        return Response.json({ up: votes[photo]?.up || 0, already_voted: true }, { headers });
+      if (action === 'up') {
+        if (!has) {
+          votes[photo] = { up: (votes[photo]?.up || 0) + 1 };
+          myVotes.push(photo);
+        }
+      } else { // 'down' — cancel a previous heart
+        if (has) {
+          const next = (votes[photo]?.up || 0) - 1;
+          if (next > 0) votes[photo] = { up: next };
+          else delete votes[photo];
+          myVotes = myVotes.filter(p => p !== photo);
+        }
       }
-
-      votes[photo] = { up: (votes[photo]?.up || 0) + 1 };
-      myVotes.push(photo);
 
       await Promise.all([
         env.VOTES.put('votes', JSON.stringify(votes)),
         env.VOTES.put(ipKey, JSON.stringify(myVotes)),
       ]);
 
-      return Response.json({ up: votes[photo].up, already_voted: false }, { headers });
+      return Response.json({ up: votes[photo]?.up || 0, voted: action === 'up' }, { headers });
     }
 
     return new Response('Not Found', { status: 404, headers });

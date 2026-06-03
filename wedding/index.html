@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>김원중 ♥ 고홍우 결혼합니다</title>
   <meta property="og:title" content="김원중 ♥ 고홍우 결혼합니다" />
-  <meta property="og:description" content="2026년 8월 17일 월요일 오전 11시 · 보타닉파크 웨딩홀" />
+  <meta property="og:description" content="2026년 8월 17일 월요일 오전 11시 20분 · 보타닉파크 웨딩홀" />
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -424,8 +424,12 @@
       display: flex;
       align-items: center;
       gap: 0.22rem;
-      pointer-events: none;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s, background 0.15s, color 0.15s;
     }
+    .gallery-heart-count:active { transform: scale(1.18); }
+    .gallery-heart-count.voted { background: rgba(224,112,112,0.85); color: #fff; }
     .gallery-votes {
       display: flex;
       align-items: center;
@@ -495,6 +499,9 @@
       max-height: 88vh;
       object-fit: contain;
       border-radius: 2px;
+      touch-action: none;
+      transform-origin: center center;
+      will-change: transform;
     }
     #lightbox-close {
       position: absolute;
@@ -821,7 +828,7 @@
         <span class="hero-ampersand">♥</span>
         <span data-i18n="heroBrideName">고홍우</span>
       </div>
-      <div class="hero-date">2026 · 08 · 17 &nbsp;MON&nbsp; AM 11:00</div>
+      <div class="hero-date">2026 · 08 · 17 &nbsp;MON&nbsp; AM 11:20</div>
     </div>
     <div class="hero-scroll-hint">
       <span>SCROLL</span>
@@ -861,7 +868,7 @@
     <div class="section-label">D - Day</div>
     <div class="divider"></div>
     <div id="dday-row" class="dday-row"></div>
-    <div class="dday-sub" data-i18n="ddaySub">2026년 8월 17일 월요일 오전 11시</div>
+    <div class="dday-sub" data-i18n="ddaySub">2026년 8월 17일 월요일 오전 11시 20분</div>
     <button type="button" class="cal-add-btn" onclick="addToCalendar()"
             data-i18n="calAddBtn">📅 내 캘린더에 일정 추가</button>
   </section>
@@ -1011,7 +1018,7 @@
   /* ===== I18N (Chinese fallback for zh-* system languages) ===== */
   const I18N_ZH = {
     pageTitle: '金元中 ♥ 高红雨 即将结婚',
-    ogDesc: '2026年8月17日 星期一 上午11点 · Botanic Park 婚礼大厅',
+    ogDesc: '2026年8月17日 星期一 上午11点20分 · Botanic Park 婚礼大厅',
     introTouch: '请触摸屏幕',
     introCalBtn: '📅 添加到日历',
     calAddBtn: '📅 添加到我的日历',
@@ -1022,7 +1029,7 @@
     familySuffixSon: '之子 <strong>元中</strong>',
     brideParents: '高山 · 邢振霞',
     familySuffixDaughter: '之女 <strong>红雨</strong>',
-    ddaySub: '2026年8月17日 星期一 上午11点',
+    ddaySub: '2026年8月17日 星期一 上午11点20分',
     sortToggle: '按推荐顺序排序',
     galleryEmpty: '请在 pictures 文件夹中添加照片后，在上方 PHOTOS 数组中输入文件名。',
     venueName: 'Botanic Park 婚礼大厅',
@@ -1046,7 +1053,7 @@
     footerVenue: 'Botanic Park 婚礼大厅',
     shareTooltip: '分享',
     shareTitle: '金元中 ♥ 高红雨 即将结婚',
-    shareText: '2026年8月17日 星期一 上午11点 · Botanic Park 婚礼大厅',
+    shareText: '2026年8月17日 星期一 上午11点20分 · Botanic Park 婚礼大厅',
     toastAccountCopied: '账号已复制',
     toastLinkCopied: '链接已复制',
   };
@@ -1127,13 +1134,13 @@
   })();
 
   /* ===== ADD TO CALENDAR ===== */
-  // 2026-08-17 11:00 KST = 02:00 UTC, 13:00 KST = 04:00 UTC
+  // 2026-08-17 11:20 KST = 02:20 UTC, 13:20 KST = 04:20 UTC
   const CAL = {
     title: '김원중 ♥ 고홍우 결혼식',
     location: '보타닉파크 웨딩홀 (서울 강서구 마곡중앙5로 6, 보타닉 푸르지오시티 L층)',
-    details: '2026년 8월 17일 (월) 오전 11시\n청첩장: https://qkaTlehdrnf.github.io/wedding/',
-    start: '20260817T020000Z',
-    end: '20260817T040000Z'
+    details: '2026년 8월 17일 (월) 오전 11시 20분\n청첩장: https://qkaTlehdrnf.github.io/wedding/',
+    start: '20260817T022000Z',
+    end: '20260817T042000Z'
   };
 
   function buildWeddingICS() {
@@ -1206,7 +1213,7 @@
   })();
 
   /* ===== D-DAY COUNTER ===== */
-  const WEDDING = new Date('2026-08-17T11:00:00');
+  const WEDDING = new Date('2026-08-17T11:20:00');
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -1271,14 +1278,9 @@
     '12_SIN00411-1.jpg',
     '13_SIN00331-1.jpg',
     '14_SIN00340-1.jpg',
-    '15_SIN00452-1.jpg',
-    '16_SIN00465-1.jpg',
     '17_SIN00513-1.jpg',
     '18_SIN00544-1.jpg',
-    '19_SIN00562-1.jpg',
-    '20_SIN00577-1.jpg',
     '21_SIN00589-1.jpg',
-    '22_SIN00585-1.jpg',
     '23_SIN00615-1.jpg',
     '24_SIN00650-1.jpg',
     '25_SIN00609-1.jpg',
@@ -1292,15 +1294,9 @@
     '33_SIN00778-1.jpg',
     '34_SIN00766-1.jpg',
     '35_SIN00794-1.jpg',
-    '36_SIN00823-1.jpg',
     '37_SIN00843-1.jpg',
     '38_SIN00859-3.jpg',
-    '39_SIN00875-2.jpg',
-    '40_SIN00866-1.jpg',
     '41_SIN00879-1.jpg',
-    '42_SIN00909-1.jpg',
-    '43_SIN00946-1.jpg',
-    '44_SIN00952-1.jpg',
     '45_SIN00964-1.jpg',
     '46_SIN00994-1.jpg',
     '47_SIN01040-1.jpg',
@@ -1308,34 +1304,18 @@
     '49_SIN01408-1.jpg',
     '50_SIN01395-1.jpg',
     '51_SIN01156_색감그대로-1.jpg',
-    '52_SIN01198_색감그대로-1.jpg',
-    '53_SIN01096_색감그대로-1.jpg',
-    '54_SIN01130_색감그대로-1.jpg',
     '55_SIN01257_색감그대로-1.jpg',
     '56_SIN01256_색감그대로-1.jpg',
     '57_SIN01214_색감그대로-1.jpg',
     '58_SIN01238_색감그대로-1.jpg',
-    '59_SIN01301-1.jpg',
-    '60_SIN01319-1.jpg',
-    '61_SIN01362-1.jpg',
     '62_SIN01454-1.jpg',
-    '63_SIN01495-1.jpg',
     '64_SIN01507-1.jpg',
-    '65_SIN01557-1.jpg',
-    '66_SIN01583-1.jpg',
     '67_SIN01941-2.jpg',
     '68_SIN01947-2.jpg',
     '69_SIN01850-2.jpg',
-    '70_SIN01883-1.jpg',
-    '71_SIN01634-1.jpg',
-    '72_SIN01670-1.jpg',
     '73_SIN01763-2.jpg',
-    '74_SIN01825-2.jpg',
     '75_SIN01990-1.jpg',
     '76_SIN01978-1.jpg',
-    '77_SIN02154-1.jpg',
-    '78_SIN02140-1.jpg',
-    '79_SIN02038-2.jpg',
     '80_SIN02051-2.jpg',
     '81_SIN02088-2.jpg',
   ];
@@ -1427,6 +1407,9 @@
       countBadge.id = `ghc-${CSS.escape(name)}`;
       const count = heartCounts[name] || 0;
       countBadge.textContent = count > 0 ? `♥ ${count}` : '♡';
+      if (myVotedPhotos.has(name)) countBadge.classList.add('voted');
+      countBadge.title = t('heartTooltip', '좋아요');
+      countBadge.onclick = (e) => { e.stopPropagation(); castHeart(name); };
       imgWrap.appendChild(countBadge);
 
       div.appendChild(imgWrap);
@@ -1436,46 +1419,64 @@
     });
   }
 
-  function updateLightboxHeartUI() {
-    const name = currentLightboxName;
+  function updateHeartUI(name) {
     if (!name) return;
-    const btn = document.getElementById('lightbox-heart-btn');
-    const icon = document.getElementById('lightbox-heart-icon');
-    const countEl = document.getElementById('lightbox-heart-count');
     const hearted = myVotedPhotos.has(name);
-    btn.className = hearted ? 'hearted' : '';
-    icon.textContent = hearted ? '♥' : '♡';
-    countEl.textContent = heartCounts[name] || '';
+    const count = heartCounts[name] || 0;
+
+    if (name === currentLightboxName) {
+      const btn = document.getElementById('lightbox-heart-btn');
+      const icon = document.getElementById('lightbox-heart-icon');
+      const countEl = document.getElementById('lightbox-heart-count');
+      if (btn) btn.className = hearted ? 'hearted' : '';
+      if (icon) icon.textContent = hearted ? '♥' : '♡';
+      if (countEl) countEl.textContent = count || '';
+    }
 
     const badge = document.getElementById(`ghc-${CSS.escape(name)}`);
     if (badge) {
-      const count = heartCounts[name] || 0;
       badge.textContent = count > 0 ? `♥ ${count}` : '♡';
+      badge.classList.toggle('voted', hearted);
     }
   }
 
-  async function castHeart() {
-    const name = currentLightboxName;
-    if (!name || myVotedPhotos.has(name)) return;
+  // 라이트박스 하트 버튼 호환용 별칭
+  function updateLightboxHeartUI() { updateHeartUI(currentLightboxName); }
 
-    myVotedPhotos.add(name);
-    if (!heartCounts[name]) heartCounts[name] = 0;
-    heartCounts[name]++;
-    updateLightboxHeartUI();
+  let heartInflight = new Set();
+
+  async function castHeart(name) {
+    name = name || currentLightboxName;
+    if (!name || heartInflight.has(name)) return;
+    heartInflight.add(name);
+
+    const wasVoted = myVotedPhotos.has(name);
+    const action = wasVoted ? 'down' : 'up';
+
+    // 낙관적 업데이트 (한 번 더 누르면 취소)
+    if (wasVoted) {
+      myVotedPhotos.delete(name);
+      heartCounts[name] = Math.max(0, (heartCounts[name] || 0) - 1);
+    } else {
+      myVotedPhotos.add(name);
+      heartCounts[name] = (heartCounts[name] || 0) + 1;
+    }
+    updateHeartUI(name);
 
     try {
       const res = await fetch(`${VOTES_API}/vote`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({photo: name, action: 'up'}),
+        body: JSON.stringify({photo: name, action}),
       });
       if (res.ok) {
         const data = await res.json();
         heartCounts[name] = data.up;
-        if (data.already_voted) myVotedPhotos.add(name);
-        updateLightboxHeartUI();
+        if (data.voted) myVotedPhotos.add(name); else myVotedPhotos.delete(name);
+        updateHeartUI(name);
       }
     } catch (_) {}
+    finally { heartInflight.delete(name); }
   }
 
   function toggleSort() {
@@ -1556,6 +1557,7 @@
 
   function _loadLightboxPhoto(name, total) {
     currentLightboxName = name;
+    resetLightboxZoom();
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
     const counter = document.getElementById('lightbox-counter');
@@ -1581,6 +1583,7 @@
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('open');
     document.body.style.overflow = '';
+    resetLightboxZoom();
   }
 
   /* keyboard navigation */
@@ -1591,13 +1594,98 @@
     else if (e.key === 'Escape') closeLightbox();
   });
 
-  /* touch swipe */
+  /* ===== PINCH ZOOM + SWIPE ===== */
+  let lbScale = 1, lbTx = 0, lbTy = 0;
+
+  function applyLbTransform() {
+    const img = document.getElementById('lightbox-img');
+    if (img) img.style.transform = `translate(${lbTx}px, ${lbTy}px) scale(${lbScale})`;
+  }
+
+  function resetLightboxZoom() {
+    lbScale = 1; lbTx = 0; lbTy = 0;
+    const img = document.getElementById('lightbox-img');
+    if (img) img.style.transform = '';
+  }
+
   (function () {
-    let startX = 0;
     const lb = document.getElementById('lightbox');
-    lb.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    const img = document.getElementById('lightbox-img');
+    let startDist = 0, startScale = 1, startMidX = 0, startMidY = 0, startTx = 0, startTy = 0;
+    let panX = 0, panY = 0, mode = null, moved = false;
+    let swipeStartX = null;
+
+    const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const midX = t => (t[0].clientX + t[1].clientX) / 2;
+    const midY = t => (t[0].clientY + t[1].clientY) / 2;
+    const zoomed = () => lbScale > 1.02;
+
+    img.addEventListener('touchstart', e => {
+      moved = false;
+      if (e.touches.length === 2) {
+        mode = 'pinch';
+        startDist = dist(e.touches);
+        startScale = lbScale;
+        startMidX = midX(e.touches); startMidY = midY(e.touches);
+        startTx = lbTx; startTy = lbTy;
+        img.style.transition = '';
+        e.preventDefault();
+      } else if (e.touches.length === 1 && zoomed()) {
+        mode = 'pan';
+        panX = e.touches[0].clientX - lbTx;
+        panY = e.touches[0].clientY - lbTy;
+      } else {
+        mode = null;
+      }
+    }, { passive: false });
+
+    img.addEventListener('touchmove', e => {
+      if (mode === 'pinch' && e.touches.length === 2) {
+        moved = true;
+        lbScale = Math.min(4, Math.max(1, startScale * dist(e.touches) / startDist));
+        lbTx = startTx + (midX(e.touches) - startMidX);
+        lbTy = startTy + (midY(e.touches) - startMidY);
+        applyLbTransform();
+        e.preventDefault();
+      } else if (mode === 'pan' && e.touches.length === 1 && zoomed()) {
+        moved = true;
+        lbTx = e.touches[0].clientX - panX;
+        lbTy = e.touches[0].clientY - panY;
+        applyLbTransform();
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    img.addEventListener('touchend', e => {
+      // 핀치 중 손가락 하나가 떨어지면 남은 손가락으로 패닝 전환
+      if (mode === 'pinch' && e.touches.length === 1) {
+        mode = 'pan';
+        panX = e.touches[0].clientX - lbTx;
+        panY = e.touches[0].clientY - lbTy;
+        return;
+      }
+      if (e.touches.length === 0) {
+        if (!zoomed()) {
+          resetLightboxZoom();
+          img.style.transition = 'transform 0.2s';
+          setTimeout(() => { img.style.transition = ''; }, 220);
+        }
+        mode = null;
+      }
+    }, { passive: false });
+
+    // 제스처(핀치/패닝) 후 또는 확대 상태에서는 탭으로 라이트박스가 닫히지 않게
+    img.addEventListener('click', e => {
+      if (moved || zoomed()) e.stopPropagation();
+    });
+
+    // 스와이프 좌우 이동 — 확대되지 않은 1손가락일 때만
+    lb.addEventListener('touchstart', e => {
+      swipeStartX = (e.touches.length === 1 && !zoomed()) ? e.touches[0].clientX : null;
+    }, { passive: true });
     lb.addEventListener('touchend', e => {
-      const dx = e.changedTouches[0].clientX - startX;
+      if (swipeStartX == null || zoomed()) return;
+      const dx = e.changedTouches[0].clientX - swipeStartX;
       if (Math.abs(dx) > 50) navigateLightbox(dx < 0 ? 1 : -1);
     });
   })();
@@ -1606,7 +1694,7 @@
   function shareInvitation() {
     const data = {
       title: t('shareTitle', '김원중 ♥ 고홍우 결혼합니다'),
-      text: t('shareText', '2026년 8월 17일 월요일 오전 11시 · 보타닉파크 웨딩홀'),
+      text: t('shareText', '2026년 8월 17일 월요일 오전 11시 20분 · 보타닉파크 웨딩홀'),
       url: window.location.href,
     };
     if (navigator.share) {
