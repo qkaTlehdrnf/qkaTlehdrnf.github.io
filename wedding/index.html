@@ -688,7 +688,13 @@
     .map-container {
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .map-container img {
+      width: 100%;
+      display: block;
+      /* white map background multiplies into the cream section color,
+         so the line art sits directly on #f5ede3 with no hard card edge */
+      mix-blend-mode: multiply;
     }
     .transport-section {
       margin-top: 2rem;
@@ -893,9 +899,9 @@
       보타닉 푸르지오시티 L층 (로비층)<br>
       TEL. 02-2662-8300
     </div>
-    <!-- 커스텀 지도 (별도 파일: map.svg) -->
+    <!-- 커스텀 지도 (별도 파일: map_simple.png) -->
     <div class="map-container">
-      <img src="./map.svg" alt="보타닉파크웨딩 오는 길" style="width:100%;display:block;">
+      <img src="./map_simple.png" alt="보타닉파크웨딩 오는 길">
     </div>
 
     <!-- 교통 안내 -->
