@@ -31,7 +31,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: opacity 0.45s ease, visibility 0.45s ease;
+      transition: opacity 0.65s ease, visibility 0.65s ease;
       overflow: hidden;
     }
     #intro.hidden {
@@ -46,7 +46,7 @@
       height: 100%;
       object-fit: cover;
       background: #1a1410;
-      transition: filter 0.3s ease, opacity 0.3s ease;
+      transition: filter 0.35s ease, opacity 0.35s ease;
     }
     #intro.flashing #intro-video {
       filter: brightness(2.6) saturate(0.5);
@@ -57,7 +57,7 @@
       inset: 0;
       pointer-events: none;
       background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%);
-      transition: opacity 0.3s ease;
+      transition: opacity 0.35s ease;
     }
     #intro.flashing #intro-vignette { opacity: 0; }
     #intro-flash {
@@ -68,7 +68,7 @@
       opacity: 0;
     }
     #intro.flashing #intro-flash {
-      animation: introFlashBloom 0.3s ease-out forwards;
+      animation: introFlashBloom 0.35s ease-out forwards;
     }
 
     @keyframes introFlashBloom {
@@ -163,7 +163,7 @@
     /* ===== MAIN CONTENT ===== */
     #main-content {
       opacity: 0;
-      transition: opacity 0.45s ease;
+      transition: opacity 0.65s ease;
     }
     #main-content.visible { opacity: 1; }
 
@@ -687,14 +687,21 @@
     /* ===== CUSTOM MAP ===== */
     .map-container {
       border-radius: 8px;
-      overflow: hidden;
     }
     .map-container img {
       width: 100%;
       display: block;
-      /* white map background multiplies into the cream section color,
-         so the line art sits directly on #f5ede3 with no hard card edge */
-      mix-blend-mode: multiply;
+      /* keep the map on its bright white background for legibility, but
+         feather all four edges so the white dissolves into the cream
+         section (#f5ede3) instead of meeting it with a hard rectangle edge */
+      -webkit-mask-image:
+        linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%),
+        linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+      -webkit-mask-composite: source-in;
+      mask-image:
+        linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%),
+        linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+      mask-composite: intersect;
     }
     .transport-section {
       margin-top: 2rem;
@@ -1115,21 +1122,21 @@
     const main = document.getElementById('main-content');
     const v = document.getElementById('intro-video');
 
-    // Phase 1 (0–300ms): brighten the video and bloom the flash to peak white
+    // Phase 1 (0–350ms): brighten the video and bloom the flash to peak white
     intro.classList.add('flashing');
 
-    // Phase 2 (150ms): main content begins fading in behind the white flash
-    setTimeout(() => { main.classList.add('visible'); }, 150);
+    // Phase 2 (180ms): main content begins fading in behind the white flash
+    setTimeout(() => { main.classList.add('visible'); }, 180);
 
-    // Phase 3 (300ms, at flash peak): fade the entire intro layer out —
+    // Phase 3 (350ms, at flash peak): fade the entire intro layer out —
     //   the flash stays opaque while the intro fades, so the white dissolves
     //   directly into the photo without exposing the video frame
-    setTimeout(() => { intro.classList.add('hidden'); }, 300);
+    setTimeout(() => { intro.classList.add('hidden'); }, 350);
 
     // Phase 4: tear down the video element once the intro is fully gone
     setTimeout(() => {
       if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (_) {} }
-    }, 1000);
+    }, 1300);
   }
 
   // Auto-dismiss when the intro video ends
